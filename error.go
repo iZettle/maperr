@@ -2,8 +2,15 @@ package maperr
 
 import "fmt"
 
+// Error which exposes a method that determines if the error
+// can be considered equal or not
+type Error interface {
+	error
+	Equal(Error) bool
+}
+
 // Errorf returns an error which persists
-func Errorf(format string, args ...interface{}) error {
+func Errorf(format string, args ...interface{}) Error {
 	return newFormattedError(format, args...)
 }
 
@@ -29,6 +36,10 @@ func (fe formattedError) Error() string {
 	return fe.error.Error()
 }
 
-func (fe formattedError) EqualFormat(format string) bool {
-	return fe.format == format
+func (fe formattedError) Equal(err Error) bool {
+	formattedErr, ok := err.(formattedError)
+	if !ok {
+		return false
+	}
+	return fe.format == formattedErr.format
 }

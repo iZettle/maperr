@@ -24,21 +24,49 @@ func (hm HashableMapper) Map(err error) error {
 	return err
 }
 
-// FormattedMapper maps formatted error strings to an error
-type FormattedMapper map[string]error
+// PairErrors holds a pair of errorPairs
+type PairErrors struct{
+	err Error
+	match Error
+}
+
+// ListMapper maps not hashable or formatted errorPairs
+type ListMapper struct {
+	errorPairs []PairErrors
+}
+
+// NewListMapper return a new ListMapper
+func NewListMapper() ListMapper {
+	return ListMapper{}
+}
+
+// Appendf append a format to error association
+func (fm ListMapper) Appendf(format string, match Error) ListMapper {
+	return fm.Append(Errorf(format), match)
+}
+
+// Append append an error to error association
+func (fm ListMapper) Append(err, match Error) ListMapper {
+	fm.errorPairs = append(fm.errorPairs,
+		PairErrors{
+			err:   err,
+			match: match,
+		})
+	return fm
+}
 
 // Map a formatted error to an error
-func (hm FormattedMapper) Map(err error) error {
-	fe, ok := err.(formattedError)
+func (fm ListMapper) Map(toMap error) error {
+	err, ok := toMap.(Error)
 	if !ok {
 		return nil
 	}
 	var matched error
-	for errText, errMatchCandidate := range hm {
-		if !fe.EqualFormat(errText) {
+	for k := range fm.errorPairs {
+		if !err.Equal(fm.errorPairs[k].err) {
 			continue
 		}
-		matched = errMatchCandidate
+		matched = fm.errorPairs[k].match
 		break
 	}
 	return matched
