@@ -13,6 +13,23 @@ This is because is defined as `type HashableMapper map[error]error`
 
 If is necessary, in the future we can have another `Mapper` implementation which supports non hashable error types.
 
+### Formatted errors
+`FormattedMapper` can be used in combination of the standard `HashableMapper` to allow to map an error format to an error.
+
+```go
+    var Errors = maperr.NewMultiErr(
+        maperr.FormattedMapper{
+            "element with %d was not found": ErrBar,
+        },
+    )
+    // NOTE: the formatted mapper only works with maperr.Errorf so won't work with fmt.Errorf
+    err = maperr.Errorf("element with %d was not found", 12345)
+    
+    if appendedErr := Errors.Mapped(err, ErrFoo); appendedErr != nil {
+        return nil, appendedErr
+    }
+```
+
 ### Example usage:
 
 Handler layer

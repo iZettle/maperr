@@ -24,15 +24,46 @@ func (hm HashableMapper) Map(err error) error {
 	return err
 }
 
+// FormattedMapper maps formatted error strings to an error
+type FormattedMapper map[string]error
+
+// Map a formatted error to an error
+func (hm FormattedMapper) Map(err error) error {
+	fe, ok := err.(formattedError)
+	if !ok {
+		return nil
+	}
+	var matched error
+	for errText, errMatchCandidate := range hm {
+		if !fe.EqualFormat(errText) {
+			continue
+		}
+		matched = errMatchCandidate
+		break
+	}
+	return matched
+}
+
+type mapperList []Mapper
+
+func (ml mapperList) Map(err error) error {
+	for k := range ml {
+		if mapped := ml[k].Map(err); mapped != nil {
+			return mapped
+		}
+	}
+	return nil
+}
+
 // MultiErr an error to another error
 type MultiErr struct {
-	mapper Mapper
+	mappers mapperList
 }
 
 // NewMultiErr return a new instance of MultiErr
-func NewMultiErr(mapper Mapper) MultiErr {
+func NewMultiErr(mapper ...Mapper) MultiErr {
 	return MultiErr{
-		mapper: mapper,
+		mappers: mapperList(mapper),
 	}
 }
 
@@ -54,7 +85,7 @@ func (m MultiErr) LastMapped(err error) error {
 	if previous != nil {
 		errorToMap = previous
 	}
-	return m.mapper.Map(errorToMap)
+	return m.mappers.Map(errorToMap)
 }
 
 // appendMapped append the mapped error to the given error
@@ -64,7 +95,7 @@ func (m MultiErr) appendMapped(err error) error {
 	if previous != nil {
 		errorToMap = previous
 	}
-	mapped := m.mapper.Map(errorToMap)
+	mapped := m.mappers.Map(errorToMap)
 	if mapped == nil {
 		return nil
 	}

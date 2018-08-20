@@ -92,6 +92,57 @@ func TestMap_Mapped(t *testing.T) {
 	}
 }
 
+func TestMap_MappedFormattedErrors(t *testing.T) {
+	errTextLayerOneFailed := "foo %d"
+	errLayerOneFailed := maperr.Errorf(errTextLayerOneFailed, 10)
+
+	errTextLayerTwoFailed := "bar %d"
+	errLayerTwoFailed := maperr.Errorf(errTextLayerTwoFailed, 20)
+
+	type iteration struct {
+		mapErr maperr.FormattedMapper
+		err    error
+	}
+	tests := []struct {
+		name        string
+		iterations  []iteration
+		expectedErr string
+		defaultErr  error
+	}{
+		{
+			name: "error going through three layers",
+			iterations: []iteration{
+				{
+					mapErr: maperr.FormattedMapper{
+						errTextLayerOneFailed: errLayerTwoFailed,
+					},
+					err: errLayerOneFailed,
+				},
+				{
+					mapErr: maperr.FormattedMapper{
+						errTextLayerTwoFailed: maperr.Errorf("abc"),
+					},
+					err: errLayerTwoFailed,
+				},
+			},
+			expectedErr: "foo 10; bar 20; abc",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actualErr := test.iterations[0].err
+			for _, iteration := range test.iterations {
+				actualErr = maperr.NewMultiErr(iteration.mapErr).Mapped(actualErr, test.defaultErr)
+			}
+			if test.expectedErr == "" {
+				assert.NoError(t, actualErr)
+			} else {
+				assert.EqualError(t, actualErr, test.expectedErr)
+			}
+		})
+	}
+}
+
 func TestMap_LastAppended(t *testing.T) {
 	layerOneFailed := errors.New("layer 1 failed")
 	layerTwoFailed := errors.New("layer 2 failed")
