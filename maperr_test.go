@@ -100,7 +100,7 @@ func TestMap_MappedFormattedErrors(t *testing.T) {
 	errLayerTwoFailed := maperr.Errorf(errTextLayerTwoFailed, 20)
 
 	type iteration struct {
-		mapErr maperr.FormattedMapper
+		mapErr maperr.ListMapper
 		err    error
 	}
 	tests := []struct {
@@ -113,15 +113,13 @@ func TestMap_MappedFormattedErrors(t *testing.T) {
 			name: "error going through three layers",
 			iterations: []iteration{
 				{
-					mapErr: maperr.FormattedMapper{
-						errTextLayerOneFailed: errLayerTwoFailed,
-					},
+					mapErr: maperr.NewListMapper().
+						Appendf(errTextLayerOneFailed, errLayerTwoFailed),
 					err: errLayerOneFailed,
 				},
 				{
-					mapErr: maperr.FormattedMapper{
-						errTextLayerTwoFailed: maperr.Errorf("abc"),
-					},
+					mapErr: maperr.NewListMapper().
+						Append(maperr.Errorf(errTextLayerTwoFailed), maperr.Errorf("abc")),
 					err: errLayerTwoFailed,
 				},
 			},
@@ -163,7 +161,7 @@ func TestMap_LastAppended(t *testing.T) {
 			expectedPrevious: layerOneFailed,
 		},
 		{
-			name:             "several errors",
+			name:             "several errorPairs",
 			err:              multierr.Combine(layerOneFailed, layerTwoFailed, layerThreeFailed),
 			expectedPrevious: layerThreeFailed,
 		},
@@ -240,7 +238,7 @@ func TestMap_LastMappedWithStatus(t *testing.T) {
 			givenError:   errors.New("not found"),
 		},
 		{
-			name:         "mapped errors without an http status",
+			name:         "mapped errorPairs without an http status",
 			mappedErrors: mappedErrorsWithoutStatus,
 			givenError:   wrappedSecond,
 			expected: expected{

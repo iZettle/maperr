@@ -4,25 +4,33 @@
 
 Small library that allow to separate map errors through layers
 
-This library at the current state only has one implementation of the `Mapper` interface.
-
-### Hashable mapper implementation limitations
+### Hashable mapper
 `HashableMapper` only works when the mapped error is a comparable https://golang.org/ref/spec#Comparison_operators
 
 This is because is defined as `type HashableMapper map[error]error`
 
-If is necessary, in the future we can have another `Mapper` implementation which supports non hashable error types.
+Use this when you are mapping simple errors, is the fastest mapper when matching the errors.
 
-### Formatted errors
-`FormattedMapper` can be used in combination of the standard `HashableMapper` to allow to map an error format to an error.
+### List mapper
+`ListMapper` can be used in combination of the standard `HashableMapper` to allow to map any error that implements
+`maperr.Error`
+
+`maperr.Errorf` returns an error which implements `maperr.Error` and when used in combination with `ListMapper` allow 
+you to match error's formats
+
+See the example below:
 
 ```go
+    ErrFoo := FooError{}.SomeCustomBehaviour("foo")
+
     var Errors = maperr.NewMultiErr(
-        maperr.FormattedMapper{
-            "element with %d was not found": ErrBar,
-        },
+        maperr.NewListMapper().
+            Appendf("element with %d was not found", ErrBar). // wraps the error in a error type which holds the format
+            Append(ErrFoo, ErrBar), // add the error as it is
     )
-    // NOTE: the formatted mapper only works with maperr.Errorf so won't work with fmt.Errorf
+    
+    // maperr.Errorf wraps the error in a type which holds the format
+    // this means that the mapper can match when the format is the same
     err = maperr.Errorf("element with %d was not found", 12345)
     
     if appendedErr := Errors.Mapped(err, ErrFoo); appendedErr != nil {
