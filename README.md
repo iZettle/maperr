@@ -44,9 +44,9 @@ Handler layer
 ```go
     // HTTPHandlerErrors associates a ControllerManager error with a http api handler layer error
     var HTTPHandlerErrors = maperr.NewMultiErr(maperr.HashableMapper{
-    	skurecipe.ErrorControllerRecipeForSKUNotFound:                   maperr.WithStatus(errorTextRecipeForSKUNotFound, http.StatusNotFound),
-    	skurecipe.ErrorControllerSKURecipeAssociationAlreadyExists:      maperr.WithStatus(errorTextRecipeForSKUAlreadyExists, http.StatusBadRequest),
-    	skurecipe.ErrorControllerBusinessIDMismatch:                     maperr.WithStatus(errorTextResourceBusinessMismatch, http.StatusUnauthorized),
+    	skurecipe.ErrControllerRecipeForSKUNotFound:                   maperr.WithStatus(errorTextRecipeForSKUNotFound, http.StatusNotFound),
+    	skurecipe.ErrControllerSKURecipeAssociationAlreadyExists:      maperr.WithStatus(errorTextRecipeForSKUAlreadyExists, http.StatusBadRequest),
+    	skurecipe.ErrControllerBusinessIDMismatch:                     maperr.WithStatus(errorTextResourceBusinessMismatch, http.StatusUnauthorized),
     })
 
     func (h *HTTPHandler) Get() (*Foo, error) {
@@ -64,9 +64,9 @@ Controller layer
 ```go
     // ControllerErrors associates a Repository error with a controller layer error
     var ControllerErrors = maperr.NewMultiErr(maperr.HashableMapper{
-        ErrorRepositorySKURecipeNotFound:                     ErrorControllerRecipeForSKUNotFound,
-        ErrorRepositorySKURecipeAssociationCouldNotBeCreated: ErrorControllerCouldNotAssociateSKUToRecipe,
-        ErrorRepositorySKURecipeAssociationCouldNotBeUpdated: ErrorControllerCouldNotRemoveSKUAssociationWithRecipe,
+        ErrRepositorySKURecipeNotFound:                     ErrControllerRecipeForSKUNotFound,
+        ErrRepositorySKURecipeAssociationCouldNotBeCreated: ErrControllerCouldNotAssociateSKUToRecipe,
+        ErrRepositorySKURecipeAssociationCouldNotBeUpdated: ErrControllerCouldNotRemoveSKUAssociationWithRecipe,
     })
 
     func (r *Controller) Get() (*Foo, error) {
@@ -81,11 +81,11 @@ Repository layer
 ```go
     // RepositoryErrors associates a storage error with a Repository layer error
     var RepositoryErrors = maperr.NewMultiErr(maperr.HashableMapper{
-        storage.ErrorSKURecipeNotFound:                                ErrorRepositorySKURecipeNotFound,
-        storage.ErrorDatabaseSKURecipeQuerySelectFailed:               ErrorRepositorySKURecipeNotFound,
-        storage.ErrorDatabaseSKURecipeQueryInsertFailed:               ErrorRepositorySKURecipeAssociationCouldNotBeCreated,
-        storage.ErrorDatabaseSKURecipeQueryUpdateFailed:               ErrorRepositorySKURecipeAssociationCouldNotBeUpdated,
-        storage.ErrorDatabaseSKURecipeQueryUpdateFailedNoRowsAffected: ErrorRepositorySKURecipeAssociationCouldNotBeUpdated,
+        storage.ErrSKURecipeNotFound:                                ErrRepositorySKURecipeNotFound,
+        storage.ErrDatabaseSKURecipeQuerySelectFailed:               ErrRepositorySKURecipeNotFound,
+        storage.ErrDatabaseSKURecipeQueryInsertFailed:               ErrRepositorySKURecipeAssociationCouldNotBeCreated,
+        storage.ErrDatabaseSKURecipeQueryUpdateFailed:               ErrRepositorySKURecipeAssociationCouldNotBeUpdated,
+        storage.ErrDatabaseSKURecipeQueryUpdateFailedNoRowsAffected: ErrRepositorySKURecipeAssociationCouldNotBeUpdated,
     })
 
     func (r *Repository) Get() (*Foo, error) {
