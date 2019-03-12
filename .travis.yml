@@ -17,4 +17,4 @@ script:
   - golint -set_exit_status $(go list ./...)
 
 after_script:
-  - goveralls -v -coverprofile cover.out -service=travis-pro
+  - goveralls -v -coverprofile coverage.out -service=travis-pro

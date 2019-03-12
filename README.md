@@ -1,6 +1,7 @@
 # maperr
-[![Build Status](https://travis-ci.org/iZettle/maperr.svg?branch=master)](https://travis-ci.org/iZettle/maperr)
-[![Coverage Status](https://coveralls.io/repos/github/iZettle/maperr/badge.svg)](https://coveralls.io/github/iZettle/maperr)
+[![][languagego img]][languagego]
+[![][buildstatus img]][buildstatus]
+[![][coverage img]][coverage]
 
 <!-- vim-markdown-toc GFM -->
 
@@ -129,3 +130,10 @@ Storage layer
         }
     }
 ```
+
+[buildstatus img]:https://travis-ci.com/iZettle/maperr.svg?token=Gc7Chex1j1M4SzP7wjCm&branch=master
+[buildstatus]:https://travis-ci.com/iZettle/maperr
+[coverage img]:https://coveralls.io/repos/github/iZettle/maperr/badge.svg?branch=master&t=CxfFwY
+[coverage]:https://coveralls.io/github/iZettle/maperr?branch=master
+[languagego]:https://golang.org
+[languagego img]:https://img.shields.io/badge/language-golang-77CDDD.svg?style=flat
