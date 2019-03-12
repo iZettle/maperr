@@ -3,7 +3,7 @@ package maperr_test
 import (
 	"testing"
 
-	"github.com/intelligentpos/maperr"
+	"github.com/iZettle/maperr"
 	"github.com/stretchr/testify/assert"
 )
 

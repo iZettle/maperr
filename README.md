@@ -1,17 +1,31 @@
 # maperr
-[![Build Status](https://travis-ci.org/intelligentpos/maperr.svg?branch=master)](https://travis-ci.org/intelligentpos/maperr)
-[![Coverage Status](https://coveralls.io/repos/github/intelligentpos/maperr/badge.svg)](https://coveralls.io/github/intelligentpos/maperr)
+[![Build Status](https://travis-ci.org/iZettle/maperr.svg?branch=master)](https://travis-ci.org/iZettle/maperr)
+[![Coverage Status](https://coveralls.io/repos/github/iZettle/maperr/badge.svg)](https://coveralls.io/github/iZettle/maperr)
+
+<!-- vim-markdown-toc GFM -->
+
+* [Code Owners](#code-owners)
+* [Hashable mapper](#hashable-mapper)
+* [List mapper](#list-mapper)
+* [Example usage:](#example-usage)
+
+<!-- vim-markdown-toc -->
 
 Small library that allow to separate map errors through layers
 
-### Hashable mapper
+## Code Owners
+| Owner                             | Slack Channel          |
+|-----------------------------------|------------------------|
+| `mse-understand`                  | `#edinburgh-understand`|
+
+## Hashable mapper
 `HashableMapper` only works when the mapped error is a comparable https://golang.org/ref/spec#Comparison_operators
 
 This is because is defined as `type HashableMapper map[error]error`
 
 Use this when you are mapping simple errors, is the fastest mapper when matching the errors.
 
-### List mapper
+## List mapper
 `ListMapper` can be used in combination of the standard `HashableMapper` to allow to map any error that implements
 `maperr.Error`
 
@@ -38,7 +52,7 @@ See the example below:
     }
 ```
 
-### Example usage:
+## Example usage:
 
 Handler layer
 ```go
