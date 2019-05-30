@@ -6,75 +6,21 @@ import (
 	"go.uber.org/multierr"
 )
 
-// Mapper takes an error and return a matched error
+// MapResult is an interface that defines the result of a Map operation
+type MapResult interface {
+	Previous() error
+	Last() error
+	Apply() error
+}
+
+// Mapper takes an error and return a MapResult
 type Mapper interface {
-	Map(error) error
-}
-
-// HashableMapper simple implementation of Mapper which only works
-// on hashable error keys
-type HashableMapper map[error]error
-
-// Map an error to another error
-func (hm HashableMapper) Map(err error) error {
-	err, ok := hm[err]
-	if !ok {
-		return nil
-	}
-	return err
-}
-
-// PairErrors holds a pair of errorPairs
-type PairErrors struct{
-	err Error
-	match Error
-}
-
-// ListMapper maps not hashable or formatted errorPairs
-type ListMapper struct {
-	errorPairs []PairErrors
-}
-
-// NewListMapper return a new ListMapper
-func NewListMapper() ListMapper {
-	return ListMapper{}
-}
-
-// Appendf append a format to error association
-func (fm ListMapper) Appendf(format string, match Error) ListMapper {
-	return fm.Append(Errorf(format), match)
-}
-
-// Append append an error to error association
-func (fm ListMapper) Append(err, match Error) ListMapper {
-	fm.errorPairs = append(fm.errorPairs,
-		PairErrors{
-			err:   err,
-			match: match,
-		})
-	return fm
-}
-
-// Map a formatted error to an error
-func (fm ListMapper) Map(toMap error) error {
-	err, ok := toMap.(Error)
-	if !ok {
-		return nil
-	}
-	var matched error
-	for k := range fm.errorPairs {
-		if !err.Equal(fm.errorPairs[k].err) {
-			continue
-		}
-		matched = fm.errorPairs[k].match
-		break
-	}
-	return matched
+	Map(error) MapResult
 }
 
 type mapperList []Mapper
 
-func (ml mapperList) Map(err error) error {
+func (ml mapperList) Map(err error) MapResult {
 	for k := range ml {
 		if mapped := ml[k].Map(err); mapped != nil {
 			return mapped
@@ -96,38 +42,23 @@ func NewMultiErr(mapper ...Mapper) MultiErr {
 }
 
 // Mapped appends the mapped error or a default one when is not found
-func (m MultiErr) Mapped(err error, defaultErr error) error {
-	if appendedErr := m.appendMapped(err); appendedErr != nil {
-		return appendedErr
+func (m MultiErr) Mapped(err, defaultErr error) error {
+	if res := m.mappers.Map(err); res != nil {
+		return res.Apply()
 	}
 	if err != nil && defaultErr != nil {
-		return multierr.Append(err, defaultErr)
+		return Append(err, defaultErr)
 	}
 	return err
 }
 
 // LastMapped return the last mapped error
 func (m MultiErr) LastMapped(err error) error {
-	var errorToMap = err
-	previous := LastAppended(err)
-	if previous != nil {
-		errorToMap = previous
-	}
-	return m.mappers.Map(errorToMap)
-}
-
-// appendMapped append the mapped error to the given error
-func (m MultiErr) appendMapped(err error) error {
-	var errorToMap = err
-	previous := LastAppended(err)
-	if previous != nil {
-		errorToMap = previous
-	}
-	mapped := m.mappers.Map(errorToMap)
-	if mapped == nil {
+	res := m.mappers.Map(err)
+	if res == nil {
 		return nil
 	}
-	return multierr.Append(err, mapped)
+	return res.Last()
 }
 
 // ErrorWithStatusProvider defines an error which also has an http status defined
@@ -192,4 +123,14 @@ func HasError(err error, errText string) bool {
 		}
 	}
 	return found
+}
+
+// Append appends the given errors together. Either value may be nil.
+func Append(left, right error) error {
+	return multierr.Append(left, right)
+}
+
+// Combine combines the passed errors into a single error.
+func Combine(errList ...error) error {
+	return multierr.Combine(errList...)
 }

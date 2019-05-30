@@ -7,6 +7,7 @@ import "fmt"
 type Error interface {
 	error
 	Equal(Error) bool
+	Hashable() error
 }
 
 // Errorf returns an error which persists
@@ -14,12 +15,17 @@ func Errorf(format string, args ...interface{}) Error {
 	return newFormattedError(format, args...)
 }
 
+// NewError instantiates an Error with no formatting
+func NewError(errText string) Error {
+	return Errorf(errText)
+}
+
 // formattedError is a error that holds the format
 // from which the error was generated
 type formattedError struct {
 	format string
 	args   []interface{}
-	error  error
+	err    error
 }
 
 // newFormattedError return instance of formattedError
@@ -27,13 +33,18 @@ func newFormattedError(format string, args ...interface{}) formattedError {
 	return formattedError{
 		format: format,
 		args:   args,
-		error:  fmt.Errorf(format, args...),
+		err:    fmt.Errorf(format, args...),
 	}
 }
 
 // Error return the actual error
 func (fe formattedError) Error() string {
-	return fe.error.Error()
+	return fe.err.Error()
+}
+
+// Error return the hashable error
+func (fe formattedError) Hashable() error {
+	return fe.err
 }
 
 func (fe formattedError) Equal(err Error) bool {
