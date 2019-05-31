@@ -43,10 +43,13 @@ func NewMultiErr(mapper ...Mapper) MultiErr {
 
 // Mapped appends the mapped error or a default one when is not found
 func (m MultiErr) Mapped(err, defaultErr error) error {
+	if err == nil {
+		return nil
+	}
 	if res := m.mappers.Map(err); res != nil {
 		return res.Apply()
 	}
-	if err != nil && defaultErr != nil {
+	if defaultErr != nil {
 		return Append(err, defaultErr)
 	}
 	return err
