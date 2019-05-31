@@ -8,7 +8,8 @@ import (
 )
 
 func Test_IgnoreListMapper_Map_IgnoreErrorFound(t *testing.T) {
-	errLayerOneFailed := maperr.NewError("layer 1 failed")
+	errLayerOneFailed := maperr.NewError("maperr error")
+	stdLibraryError := errors.New("maperr error")
 	errTextLayerTwoFailed := "bar %d"
 
 	tests := []struct {
@@ -18,6 +19,10 @@ func Test_IgnoreListMapper_Map_IgnoreErrorFound(t *testing.T) {
 		{
 			name:  "error ignored",
 			given: errLayerOneFailed,
+		},
+		{
+			name:  "std library error ignored",
+			given: stdLibraryError,
 		},
 		{
 			name:  "formatted error ignored",
