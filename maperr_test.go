@@ -36,6 +36,12 @@ func TestMultiErr_Mapped(t *testing.T) {
 		expectedErr  string
 	}{
 		{
+			name:         "error is nil",
+			mappedErrors: multipleMappers,
+			givenError:   nil,
+			expectedErr:  "",
+		},
+		{
 			name:         "second is ignored",
 			mappedErrors: multipleMappers,
 			givenError:   maperr.Append(first, second),
