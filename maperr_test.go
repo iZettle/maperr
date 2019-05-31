@@ -10,178 +10,69 @@ import (
 	"go.uber.org/multierr"
 )
 
-func TestMap_Mapped(t *testing.T) {
-	layerOneFailed := errors.New("layer 1 failed")
-	layerTwoFailed := errors.New("layer 2 failed")
-	layerThreeFailed := errors.New("layer 3 failed")
+func TestMultiErr_Mapped(t *testing.T) {
+	first := maperr.NewError("first")
+	second := maperr.NewError("second")
+	third := maperr.NewError("third")
+	forth := maperr.NewError("forth")
+	fifth := maperr.NewError("fifth")
 
-	type iteration struct {
-		mapErr maperr.HashableMapper
-		err    error
-	}
+	multipleMappers := maperr.NewMultiErr(
+		maperr.NewIgnoreListMapper().
+			Append(second),
+
+		maperr.NewListMapper().
+			Append(second, third).
+			Append(third, forth),
+
+		maperr.NewHashableMapper().
+			Append(forth, fifth),
+	)
+
 	tests := []struct {
-		name        string
-		iterations  []iteration
-		expectedErr string
-		defaultErr  error
+		name         string
+		mappedErrors maperr.MultiErr
+		givenError   error
+		expectedErr  string
 	}{
 		{
-			name: "error is not mapped",
-			iterations: []iteration{
-				{
-					mapErr: maperr.HashableMapper{},
-					err:    errors.New("random error"),
-				},
-			},
-			expectedErr: "random error",
+			name:         "second is ignored",
+			mappedErrors: multipleMappers,
+			givenError:   maperr.Append(first, second),
+			expectedErr:  "",
 		},
 		{
-			name: "error is not mapped",
-			iterations: []iteration{
-				{
-					mapErr: maperr.HashableMapper{},
-					err:    errors.New("random error"),
-				},
-			},
-			expectedErr: "random error; some default description for generic error",
-			defaultErr:  errors.New("some default description for generic error"),
+			name:         "when third is last error, forth is mapped and appended",
+			mappedErrors: multipleMappers,
+			givenError:   maperr.Combine(first, second, third),
+			expectedErr:  "first; second; third; forth",
 		},
 		{
-			name: "error going through one layers",
-			iterations: []iteration{
-				{
-					mapErr: maperr.HashableMapper{
-						layerOneFailed: layerTwoFailed,
-					},
-					err: layerOneFailed,
-				},
-			},
-			expectedErr: "layer 1 failed; layer 2 failed",
-		},
-		{
-			name: "error going through three layers",
-			iterations: []iteration{
-				{
-					mapErr: maperr.HashableMapper{
-						layerOneFailed: layerTwoFailed,
-					},
-					err: layerOneFailed,
-				},
-				{
-					mapErr: maperr.HashableMapper{
-						layerTwoFailed: layerThreeFailed,
-					},
-					err: layerTwoFailed,
-				},
-			},
-			expectedErr: "layer 1 failed; layer 2 failed; layer 3 failed",
+			name:         "when forth is last error, fifth is mapped and appended",
+			mappedErrors: multipleMappers,
+			givenError:   maperr.Combine(first, second, third, forth),
+			expectedErr:  "first; second; third; forth; fifth",
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actualErr := test.iterations[0].err
-			for _, iteration := range test.iterations {
-				actualErr = maperr.NewMultiErr(iteration.mapErr).Mapped(actualErr, test.defaultErr)
-			}
-			if test.expectedErr == "" {
-				assert.NoError(t, actualErr)
-			} else {
+			actualErr := test.mappedErrors.Mapped(test.givenError, errors.New("default"))
+			if test.expectedErr != "" {
 				assert.EqualError(t, actualErr, test.expectedErr)
-			}
-		})
-	}
-}
-
-func TestMap_MappedFormattedErrors(t *testing.T) {
-	errTextLayerOneFailed := "foo %d"
-	errLayerOneFailed := maperr.Errorf(errTextLayerOneFailed, 10)
-
-	errTextLayerTwoFailed := "bar %d"
-	errLayerTwoFailed := maperr.Errorf(errTextLayerTwoFailed, 20)
-
-	type iteration struct {
-		mapErr maperr.ListMapper
-		err    error
-	}
-	tests := []struct {
-		name        string
-		iterations  []iteration
-		expectedErr string
-		defaultErr  error
-	}{
-		{
-			name: "error going through three layers",
-			iterations: []iteration{
-				{
-					mapErr: maperr.NewListMapper().
-						Appendf(errTextLayerOneFailed, errLayerTwoFailed),
-					err: errLayerOneFailed,
-				},
-				{
-					mapErr: maperr.NewListMapper().
-						Append(maperr.Errorf(errTextLayerTwoFailed), maperr.Errorf("abc")),
-					err: errLayerTwoFailed,
-				},
-			},
-			expectedErr: "foo 10; bar 20; abc",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			actualErr := test.iterations[0].err
-			for _, iteration := range test.iterations {
-				actualErr = maperr.NewMultiErr(iteration.mapErr).Mapped(actualErr, test.defaultErr)
-			}
-			if test.expectedErr == "" {
-				assert.NoError(t, actualErr)
 			} else {
-				assert.EqualError(t, actualErr, test.expectedErr)
+				assert.NoError(t, actualErr)
 			}
 		})
 	}
 }
 
-func TestMap_LastAppended(t *testing.T) {
-	layerOneFailed := errors.New("layer 1 failed")
-	layerTwoFailed := errors.New("layer 2 failed")
-	layerThreeFailed := errors.New("layer 3 failed")
-	tests := []struct {
-		name             string
-		err              error
-		expectedPrevious error
-	}{
-		{
-			name:             "empty error",
-			err:              nil,
-			expectedPrevious: nil,
-		},
-		{
-			name:             "one error",
-			err:              layerOneFailed,
-			expectedPrevious: layerOneFailed,
-		},
-		{
-			name:             "several errorPairs",
-			err:              multierr.Combine(layerOneFailed, layerTwoFailed, layerThreeFailed),
-			expectedPrevious: layerThreeFailed,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			actual := maperr.LastAppended(test.err)
-			assert.Equal(t, test.expectedPrevious, actual)
-		})
-	}
-}
-
-func TestMap_LastMapped(t *testing.T) {
+func TestMultiErr_LastMapped(t *testing.T) {
 	first := errors.New("first")
 	second := errors.New("second")
 	third := errors.New("third")
-	wrappedSecond := multierr.Append(first, second)
-	mappedErrors := maperr.HashableMapper{
-		second: third,
-	}
+	wrappedSecond := maperr.Append(first, second)
+	mappedErrors := maperr.NewHashableMapper().
+		Append(second, third)
 	tests := []struct {
 		name         string
 		mappedErrors maperr.HashableMapper
@@ -212,16 +103,15 @@ func TestMap_LastMapped(t *testing.T) {
 	}
 }
 
-func TestMap_LastMappedWithStatus(t *testing.T) {
+func TestMultiErr_LastMappedWithStatus(t *testing.T) {
 	first := errors.New("first")
 	second := errors.New("second")
-	wrappedSecond := multierr.Append(first, second)
-	mappedErrorsWithStatus := maperr.HashableMapper{
-		second: maperr.WithStatus("third", http.StatusInternalServerError),
-	}
-	mappedErrorsWithoutStatus := maperr.HashableMapper{
-		second: errors.New("third"),
-	}
+	wrappedSecond := maperr.
+		Append(first, second)
+	mappedErrorsWithStatus := maperr.NewHashableMapper().
+		Append(second, maperr.WithStatus("third", http.StatusInternalServerError))
+	mappedErrorsWithoutStatus := maperr.NewHashableMapper().
+		Append(second, errors.New("third"))
 	type expected struct {
 		status int
 		err    string
@@ -286,7 +176,7 @@ func TestHasError(t *testing.T) {
 		},
 		{
 			name:     "err is not found",
-			errList:  multierr.Append(errors.New("one"), errors.New("two")),
+			errList:  maperr.Append(errors.New("one"), errors.New("two")),
 			toFind:   "three",
 			expected: false,
 		},
@@ -300,6 +190,39 @@ func TestHasError(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, maperr.HasError(test.errList, test.toFind))
+		})
+	}
+}
+
+func TestLastAppended(t *testing.T) {
+	layerOneFailed := errors.New("layer 1 failed")
+	layerTwoFailed := errors.New("layer 2 failed")
+	layerThreeFailed := errors.New("layer 3 failed")
+	tests := []struct {
+		name             string
+		err              error
+		expectedPrevious error
+	}{
+		{
+			name:             "empty error",
+			err:              nil,
+			expectedPrevious: nil,
+		},
+		{
+			name:             "one error",
+			err:              layerOneFailed,
+			expectedPrevious: layerOneFailed,
+		},
+		{
+			name:             "several errorPairs",
+			err:              multierr.Combine(layerOneFailed, layerTwoFailed, layerThreeFailed),
+			expectedPrevious: layerThreeFailed,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := maperr.LastAppended(test.err)
+			assert.Equal(t, test.expectedPrevious, actual)
 		})
 	}
 }

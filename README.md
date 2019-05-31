@@ -8,11 +8,13 @@
 * [Code Owners](#code-owners)
 * [Hashable mapper](#hashable-mapper)
 * [List mapper](#list-mapper)
-* [Example usage:](#example-usage)
+* [Ignore list mapper](#ignore-list-mapper)
+* [Usages:](#usages)
+	* [Hashable mapper](#hashable-mapper-1)
+	* [List mapper](#list-mapper-1)
+	* [Ignore list mapper](#ignore-list-mapper-1)
 
 <!-- vim-markdown-toc -->
-
-Small library that allow to separate map errors through layers
 
 ## Code Owners
 | Owner                             | Slack Channel          |
@@ -33,7 +35,74 @@ Use this when you are mapping simple errors, is the fastest mapper when matching
 `maperr.Errorf` returns an error which implements `maperr.Error` and when used in combination with `ListMapper` allow 
 you to match error's formats
 
-See the example below:
+## Ignore list mapper
+
+`IgnoreListMapper` allow to define a list of errors that should be ignored therefore if they are found in the last error
+`Mapped()` will return `nil`
+
+## Usages:
+
+### Hashable mapper
+
+Controller layer
+
+```go
+    // ControllerErrors associates a Repository error with a controller layer error
+    var ControllerErrors = maperr.NewMultiErr(
+    	maperr.NewHashableMapper().
+            Append(ErrRepositorySKURecipeNotFound, ErrControllerRecipeForSKUNotFound).
+            Append(ErrRepositorySKURecipeAssociationCouldNotBeCreated, ErrControllerCouldNotAssociateSKUToRecipe).
+            Append(ErrRepositorySKURecipeAssociationCouldNotBeUpdated, ErrControllerCouldNotRemoveSKUAssociationWithRecipe)
+
+    func (r *Controller) Get() (*Foo, error) {
+        ...
+        if appendedErr := ControllerErrors.Mapped(err, ErrorControllerRecipeForSKUNotFound); appendedErr != nil {
+            return nil, appendedErr
+        }
+    }
+```
+
+Repository layer
+
+```go
+    // RepositoryErrors associates a storage error with a Repository layer error
+    var RepositoryErrors = maperr.NewMultiErr(
+    	maperr.NewHashableMapper().
+            Append(storage.ErrSKURecipeNotFound, ErrRepositorySKURecipeNotFound).
+            Append(storage.ErrDatabaseSKURecipeQuerySelectFailed, ErrRepositorySKURecipeNotFound).
+            Append(storage.ErrDatabaseSKURecipeQueryInsertFailed, ErrRepositorySKURecipeAssociationCouldNotBeCreated).
+            Append(storage.ErrDatabaseSKURecipeQueryUpdateFailed, ErrRepositorySKURecipeAssociationCouldNotBeUpdated).
+            Append(storage.ErrDatabaseSKURecipeQueryUpdateFailedNoRowsAffected, ErrRepositorySKURecipeAssociationCouldNotBeUpdate)
+
+    func (r *Repository) Get() (*Foo, error) {
+        ...
+        if appendedErr := RepositoryErrors.Mapped(err, ErrorRepositorySKURecipeNotFound); appendedErr != nil {
+            return nil, appendedErr
+        }
+    }
+```
+
+Storage layer
+
+```go
+    // Errors associates a possible error with a storage layer error
+    var Errors = maperr.NewMultiErr(maperr.NewHashableMapper()
+        Append(sql.ErrNoRows, storage.ErrorSKURecipeNotFound)
+
+    func (s *Storage) Get() (*Foo, error) {
+        ...
+        err := s.db.Get(model, query, args...)
+
+        // if the error is sql.ErrNoRows, wraps storage.ErrorSKURecipeNotFound
+        // otherwise wraps storage.ErrorDatabaseQuerySelectFailed
+        appendedErr := Errors.Mapped(err, storage.ErrorDatabaseQuerySelectFailed)
+        if appendedErr != nil {
+            return nil, appendedErr
+        }
+    }
+```
+
+### List mapper
 
 ```go
     ErrFoo := FooError{}.SomeCustomBehaviour("foo")
@@ -53,82 +122,12 @@ See the example below:
     }
 ```
 
-## Example usage:
+### Ignore list mapper
 
-Handler layer
 ```go
-    // HTTPHandlerErrors associates a ControllerManager error with a http api handler layer error
-    var HTTPHandlerErrors = maperr.NewMultiErr(maperr.HashableMapper{
-    	skurecipe.ErrControllerRecipeForSKUNotFound:                   maperr.WithStatus(errorTextRecipeForSKUNotFound, http.StatusNotFound),
-    	skurecipe.ErrControllerSKURecipeAssociationAlreadyExists:      maperr.WithStatus(errorTextRecipeForSKUAlreadyExists, http.StatusBadRequest),
-    	skurecipe.ErrControllerBusinessIDMismatch:                     maperr.WithStatus(errorTextResourceBusinessMismatch, http.StatusUnauthorized),
-    })
-
-    func (h *HTTPHandler) Get() (*Foo, error) {
-        model, err := h.controller.Get(id, businessID)
-        if errWithStatus := HTTPHandlerErrors.LastMappedWithStatus(err); errWithStatus != nil {
-            return jsonhandler.NewResponseWithError(errWithStatus.Status(), errWithStatus.Error(), &err)
-        }
-        if err != nil {
-            return jsonhandler.ServerError(err)
-        }
-    }
-```
-
-Controller layer
-```go
-    // ControllerErrors associates a Repository error with a controller layer error
-    var ControllerErrors = maperr.NewMultiErr(maperr.HashableMapper{
-        ErrRepositorySKURecipeNotFound:                     ErrControllerRecipeForSKUNotFound,
-        ErrRepositorySKURecipeAssociationCouldNotBeCreated: ErrControllerCouldNotAssociateSKUToRecipe,
-        ErrRepositorySKURecipeAssociationCouldNotBeUpdated: ErrControllerCouldNotRemoveSKUAssociationWithRecipe,
-    })
-
-    func (r *Controller) Get() (*Foo, error) {
-        ...
-        if appendedErr := ControllerErrors.Mapped(err, ErrorControllerRecipeForSKUNotFound); appendedErr != nil {
-            return nil, appendedErr
-        }
-    }
-```
-
-Repository layer
-```go
-    // RepositoryErrors associates a storage error with a Repository layer error
-    var RepositoryErrors = maperr.NewMultiErr(maperr.HashableMapper{
-        storage.ErrSKURecipeNotFound:                                ErrRepositorySKURecipeNotFound,
-        storage.ErrDatabaseSKURecipeQuerySelectFailed:               ErrRepositorySKURecipeNotFound,
-        storage.ErrDatabaseSKURecipeQueryInsertFailed:               ErrRepositorySKURecipeAssociationCouldNotBeCreated,
-        storage.ErrDatabaseSKURecipeQueryUpdateFailed:               ErrRepositorySKURecipeAssociationCouldNotBeUpdated,
-        storage.ErrDatabaseSKURecipeQueryUpdateFailedNoRowsAffected: ErrRepositorySKURecipeAssociationCouldNotBeUpdated,
-    })
-
-    func (r *Repository) Get() (*Foo, error) {
-        ...
-        if appendedErr := RepositoryErrors.Mapped(err, ErrorRepositorySKURecipeNotFound); appendedErr != nil {
-            return nil, appendedErr
-        }
-    }
-```
-
-Storage layer
-```go
-    // Errors associates a possible error with a storage layer error
-    var Errors = maperr.NewMultiErr(maperr.HashableMapper{
-        sql.ErrNoRows: storage.ErrorSKURecipeNotFound,
-    })
-
-    func (s *Storage) Get() (*Foo, error) {
-        ...
-        err := s.db.Get(model, query, args...)
-
-        // if the error is sql.ErrNoRows, wraps storage.ErrorSKURecipeNotFound
-        // otherwise wraps storage.ErrorDatabaseQuerySelectFailed
-        appendedErr := Errors.Mapped(err, storage.ErrorDatabaseQuerySelectFailed)
-        if appendedErr != nil {
-            return nil, appendedErr
-        }
-    }
+    var Errors = maperr.NewMultiErr(
+    	maperr.NewIgnoreListMapper().
+            .Append(errors.New("pq: canceling statement due to user request"))
 ```
 
 [buildstatus img]:https://travis-ci.com/iZettle/maperr.svg?token=Gc7Chex1j1M4SzP7wjCm&branch=master
