@@ -32,8 +32,9 @@ func (lm IgnoreListMapper) Map(err error) MapResult {
 
 	comparableErr, ok := toMap.(Error)
 	if !ok {
-		return nil
+		comparableErr = NewError(toMap.Error())
 	}
+
 	for k := range lm.list {
 		if !comparableErr.Equal(lm.list[k]) {
 			continue
