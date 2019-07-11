@@ -15,6 +15,18 @@ func Errorf(format string, args ...interface{}) Error {
 	return newFormattedError(format, args...)
 }
 
+// CastError cast an error to maperr.Error when possible
+// otherwise creates a new maperr.Error
+func CastError(err error) Error {
+	if err == nil {
+		return nil
+	}
+	if mapError, ok := err.(Error); ok {
+		return mapError
+	}
+	return NewError(err.Error())
+}
+
 // NewError instantiates an Error with no formatting
 func NewError(errText string) Error {
 	return Errorf(errText)
