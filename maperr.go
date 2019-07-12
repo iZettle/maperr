@@ -112,6 +112,25 @@ func LastAppended(err error) error {
 	return nil
 }
 
+// HasEqual find the first equal error on a chain of errors
+// and returns it
+func HasEqual(chain, err error) Error {
+	mapError := CastError(err)
+
+	multiErrList := multierr.Errors(chain)
+	if len(multiErrList) == 0 {
+		return nil
+	}
+
+	for _, wrapped := range multiErrList {
+		wrappedMapError := CastError(wrapped)
+		if wrappedMapError.Equal(mapError) {
+			return wrappedMapError
+		}
+	}
+	return nil
+}
+
 // HasError checks if an error has been wrapped
 func HasError(err error, errText string) bool {
 	multiErrList := multierr.Errors(err)

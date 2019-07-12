@@ -232,3 +232,70 @@ func TestLastAppended(t *testing.T) {
 		})
 	}
 }
+
+func Test_HasEqual(t *testing.T) {
+	tests := []struct {
+		name     string
+		errList  error
+		toFind   error
+		expected maperr.Error
+	}{
+		{
+			name:     "error to be found is nil",
+			errList:  errors.New("foo"),
+			toFind:   nil,
+			expected: nil,
+		},
+		{
+			name:     "list is nil",
+			errList:  nil,
+			toFind:   errors.New("three"),
+			expected: nil,
+		},
+		{
+			name:     "error to be found is not in list",
+			errList:  maperr.Append(errors.New("one"), errors.New("two")),
+			toFind:   errors.New("three"),
+			expected: nil,
+		},
+		{
+			name:     "error to be found is in the list",
+			errList:  multierr.Combine(errors.New("one"), errors.New("two"), errors.New("three")),
+			toFind:   errors.New("three"),
+			expected: maperr.NewError("three"),
+		},
+		{
+			name:     "maperr.Error to be found is in the list",
+			errList:  multierr.Combine(errors.New("one"), errors.New("two"), errors.New("three")),
+			toFind:   maperr.NewError("three"),
+			expected: maperr.NewError("three"),
+		},
+		{
+			name:     "formatted error to be found is in the list with a different id",
+			errList:  multierr.Combine(
+				errors.New("one"),
+				maperr.Errorf("this is a formatted error %d", 12345),
+				errors.New("two"),
+				errors.New("three")),
+			toFind:   maperr.Errorf("this is a formatted error %d", 98765),
+			expected: maperr.Errorf("this is a formatted error %d", 12345),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := maperr.HasEqual(test.errList, test.toFind)
+
+			if got == nil && test.expected != nil {
+				t.Fatalf("expected %s got nil", test.expected.Error())
+			}
+
+			if got != nil && test.expected == nil {
+				t.Fatalf("expected nil got %s", got.Error())
+			}
+
+			if got != nil && test.expected != nil && got.Error() != test.expected.Error() {
+				t.Fatalf("expected %s got %s", test.expected.Error(), got.Error())
+			}
+		})
+	}
+}
