@@ -1,6 +1,7 @@
 package maperr_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/iZettle/maperr"
@@ -30,6 +31,11 @@ func TestMap_MappedFormattedErrors(t *testing.T) {
 			iterations: []iteration{
 				{
 					mapErr: maperr.NewListMapper().
+						Append(maperr.NewError("normal error"), errLayerOneFailed),
+					err: errors.New("normal error"),
+				},
+				{
+					mapErr: maperr.NewListMapper().
 						Appendf(errTextLayerOneFailed, errLayerTwoFailed),
 					err: errLayerOneFailed,
 				},
@@ -39,7 +45,7 @@ func TestMap_MappedFormattedErrors(t *testing.T) {
 					err: errLayerTwoFailed,
 				},
 			},
-			expectedErr: "foo 10; bar 20; abc",
+			expectedErr: "normal error; foo 10; bar 20; abc",
 		},
 	}
 	for _, test := range tests {
