@@ -39,10 +39,7 @@ func (lm ListMapper) Map(err error) MapResult {
 		toMap = previous
 	}
 
-	comparableErr, ok := toMap.(Error)
-	if !ok {
-		return nil
-	}
+	comparableErr := CastError(toMap)
 	for k := range lm.errorPairs {
 		if !comparableErr.Equal(lm.errorPairs[k].err) {
 			continue
