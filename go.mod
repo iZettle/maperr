@@ -1,4 +1,4 @@
-module github.com/iZettle/maperr
+module github.com/iZettle/maperr/v4
 
 go 1.12
 
