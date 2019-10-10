@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/iZettle/maperr"
+	"github.com/iZettle/maperr/v4"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/multierr"
 )
