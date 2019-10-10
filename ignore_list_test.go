@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/iZettle/maperr"
+	"github.com/iZettle/maperr/v4"
 )
 
 func Test_IgnoreListMapper_Map_IgnoreErrorFound(t *testing.T) {

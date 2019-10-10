@@ -66,6 +66,8 @@ linters:
     - gochecknoinits
     - unused
     - dupl
+    - wsl
+    - stylecheck
 
 issues:
   # Independently from option `exclude` we use default exclude patterns,
