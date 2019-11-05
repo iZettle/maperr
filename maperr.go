@@ -76,11 +76,13 @@ func (m MultiErr) LastMappedWithStatus(err error) ErrorWithStatusProvider {
 	if lastMapped == nil {
 		return nil
 	}
-	statusErr, ok := lastMapped.(ErrorWithStatusProvider)
-	if !ok {
-		return nil
+
+	var statusErr ErrorWithStatusProvider
+	if errors.As(lastMapped, &statusErr) {
+		return statusErr
 	}
-	return statusErr
+
+	return nil
 }
 
 type errorWithStatus struct {

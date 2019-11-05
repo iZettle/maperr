@@ -1,5 +1,9 @@
 package maperr
 
+import (
+	"errors"
+)
+
 // HashableMapper simple implementation of Mapper which only works
 // on hashable error keys
 type HashableMapper map[error]error
@@ -34,8 +38,11 @@ func (hm HashableMapper) Map(err error) MapResult {
 
 func (hm HashableMapper) tryMakeHashable(err error) error {
 	key := err
-	if casted, ok := err.(formattedError); ok {
-		key = casted.Hashable()
+
+	var ferr formattedError
+	if errors.As(err, &ferr) {
+		key = ferr.Hashable()
 	}
+
 	return key
 }
