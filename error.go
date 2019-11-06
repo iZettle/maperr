@@ -9,7 +9,7 @@ import (
 // can be considered equal or not
 type Error interface {
 	error
-	Equal(Error) bool
+	Equal(error) bool
 	Hashable() error
 }
 
@@ -18,9 +18,9 @@ func Errorf(format string, args ...interface{}) Error {
 	return newFormattedError(format, args...)
 }
 
-// CastError cast an error to maperr.Error when possible
+// castError cast an error to maperr.Error when possible
 // otherwise creates a new maperr.Error
-func CastError(err error) Error {
+func castError(err error) Error {
 	if err == nil {
 		return nil
 	}
@@ -60,15 +60,23 @@ func (fe formattedError) Error() string {
 	return fe.err.Error()
 }
 
+// Unwrap return the actual error
+func (fe formattedError) Unwrap() error {
+	return fe.err
+}
+
 // Error return the hashable error
 func (fe formattedError) Hashable() error {
 	return fe.err
 }
 
-func (fe formattedError) Equal(err Error) bool {
+func (fe formattedError) Equal(err error) bool {
+	if err == nil {
+		return false
+	}
 	var ferr formattedError
 	if errors.As(err, &ferr) {
 		return fe.format == ferr.format
 	}
-	return false
+	return fe.Error() == err.Error()
 }

@@ -37,7 +37,7 @@ type MultiErr struct {
 // NewMultiErr return a new instance of MultiErr
 func NewMultiErr(mapper ...Mapper) MultiErr {
 	return MultiErr{
-		mappers: mapperList(mapper),
+		mappers: mapper,
 	}
 }
 
@@ -55,8 +55,8 @@ func (m MultiErr) Mapped(err, defaultErr error) error {
 	return err
 }
 
-// LastMapped return the last mapped error
-func (m MultiErr) LastMapped(err error) error {
+// lastMapped return the last mapped error
+func (m MultiErr) lastMapped(err error) error {
 	res := m.mappers.Map(err)
 	if res == nil {
 		return nil
@@ -70,9 +70,9 @@ type ErrorWithStatusProvider interface {
 	Status() int
 }
 
-// LastMappedWithStatus return the last mapped error with the associated http status
-func (m MultiErr) LastMappedWithStatus(err error) ErrorWithStatusProvider {
-	lastMapped := m.LastMapped(err)
+// MappedWithStatus return the last mapped error with the associated http status
+func (m MultiErr) MappedWithStatus(err error) ErrorWithStatusProvider {
+	lastMapped := m.lastMapped(err)
 	if lastMapped == nil {
 		return nil
 	}
@@ -85,6 +85,11 @@ func (m MultiErr) LastMappedWithStatus(err error) ErrorWithStatusProvider {
 	return nil
 }
 
+// LastMappedWithStatus alias of MappedWithStatus
+func (m MultiErr) LastMappedWithStatus(err error) ErrorWithStatusProvider {
+	return m.MappedWithStatus(err)
+}
+
 type errorWithStatus struct {
 	err    error
 	status int
@@ -92,6 +97,10 @@ type errorWithStatus struct {
 
 func (ews errorWithStatus) Status() int {
 	return ews.status
+}
+
+func (ews errorWithStatus) Unwrap() error {
+	return ews.err
 }
 
 func (ews errorWithStatus) Error() string {
@@ -117,7 +126,7 @@ func LastAppended(err error) error {
 // HasEqual find the first equal error on a chain of errors
 // and returns it
 func HasEqual(chain, err error) Error {
-	mapError := CastError(err)
+	mapError := castError(err)
 
 	multiErrList := multierr.Errors(chain)
 	if len(multiErrList) == 0 {
@@ -125,7 +134,7 @@ func HasEqual(chain, err error) Error {
 	}
 
 	for _, wrapped := range multiErrList {
-		wrappedMapError := CastError(wrapped)
+		wrappedMapError := castError(wrapped)
 		if wrappedMapError.Equal(mapError) {
 			return wrappedMapError
 		}

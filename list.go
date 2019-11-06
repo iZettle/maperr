@@ -17,16 +17,16 @@ func NewListMapper() ListMapper {
 }
 
 // Appendf append a format to error association
-func (lm ListMapper) Appendf(format string, match Error) ListMapper {
-	return lm.Append(Errorf(format), match)
+func (lm ListMapper) Appendf(format string, match error) ListMapper {
+	return lm.Append(Errorf(format), castError(match))
 }
 
 // Append append an error to error association
-func (lm ListMapper) Append(err, match Error) ListMapper {
+func (lm ListMapper) Append(err, match error) ListMapper {
 	lm.errorPairs = append(lm.errorPairs,
 		PairErrors{
-			err:   err,
-			match: match,
+			err:   castError(err),
+			match: castError(match),
 		})
 	return lm
 }
@@ -39,39 +39,39 @@ func (lm ListMapper) Map(err error) MapResult {
 		toMap = previous
 	}
 
-	comparableErr := CastError(toMap)
+	comparableErr := castError(toMap)
 	for k := range lm.errorPairs {
 		if !comparableErr.Equal(lm.errorPairs[k].err) {
 			continue
 		}
-		return NewAppendStrategy(err, lm.errorPairs[k].match)
+		return newAppendStrategy(err, lm.errorPairs[k].match)
 	}
 	return nil
 }
 
-// AppendStrategy holds data for an ignore strategy
-type AppendStrategy struct {
+// appendStrategy holds data for an ignore strategy
+type appendStrategy struct {
 	previous error
 	last     error
 }
 
-// NewAppendStrategy instantiates a new AppendStrategy
-func NewAppendStrategy(previous, last error) AppendStrategy {
-	return AppendStrategy{previous: previous, last: last}
+// newAppendStrategy instantiates a new appendStrategy
+func newAppendStrategy(previous, last error) appendStrategy {
+	return appendStrategy{previous: previous, last: last}
 }
 
 // Previous returns the error that we want to append to
-func (as AppendStrategy) Previous() error {
+func (as appendStrategy) Previous() error {
 	return as.previous
 }
 
 // Last returns the error that we are appending
-func (as AppendStrategy) Last() error {
+func (as appendStrategy) Last() error {
 	return as.last
 }
 
 // Apply the append strategy by appending previous to last
-func (as AppendStrategy) Apply() error {
+func (as appendStrategy) Apply() error {
 	if as.last == nil {
 		return nil
 	}
