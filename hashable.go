@@ -2,6 +2,8 @@ package maperr
 
 import (
 	"errors"
+
+	"go.uber.org/multierr"
 )
 
 // HashableMapper simple implementation of Mapper which only works
@@ -23,17 +25,21 @@ func (hm HashableMapper) Append(err, match error) HashableMapper {
 
 // Map an error to another error
 func (hm HashableMapper) Map(err error) MapResult {
-	var toMap = err
-	previous := LastAppended(err)
-	if previous != nil {
-		toMap = previous
+	errorsToMap := []error{
+		err,
 	}
-	key := hm.tryMakeHashable(toMap)
-	mapped, ok := hm[key]
-	if !ok {
-		return nil
+	if errList := multierr.Errors(err); len(errList) > 0 {
+		errorsToMap = errList
 	}
-	return newAppendStrategy(err, mapped)
+
+	for i := len(errorsToMap) - 1; i >= 0; i-- {
+		key := hm.tryMakeHashable(errorsToMap[i])
+		mapped, ok := hm[key]
+		if ok {
+			return newAppendStrategy(err, mapped)
+		}
+	}
+	return nil
 }
 
 func (hm HashableMapper) tryMakeHashable(err error) error {

@@ -109,7 +109,7 @@ func (ews errorWithStatus) Error() string {
 
 // WithStatus return an error with an associated status
 func WithStatus(err string, status int) error {
-	return &errorWithStatus{
+	return errorWithStatus{
 		err:    errors.New(err),
 		status: status,
 	}

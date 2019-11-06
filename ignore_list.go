@@ -1,5 +1,9 @@
 package maperr
 
+import (
+	"go.uber.org/multierr"
+)
+
 // IgnoreListMapper is a Mapper that allow to specify a list of error that we
 // want to ignore
 type IgnoreListMapper struct {
@@ -24,20 +28,22 @@ func (lm IgnoreListMapper) Append(err error) IgnoreListMapper {
 
 // Map an error to an ignore strategy
 func (lm IgnoreListMapper) Map(err error) MapResult {
-	var toMap = err
-	previous := LastAppended(err)
-	if previous != nil {
-		toMap = previous
+	errorsToMap := []error{
+		err,
+	}
+	if errList := multierr.Errors(err); len(errList) > 0 {
+		errorsToMap = errList
 	}
 
-	comparableErr := castError(toMap)
-
-	for k := range lm.list {
-		if !comparableErr.Equal(lm.list[k]) {
-			continue
+	for i := len(errorsToMap) - 1; i >= 0; i-- {
+		comparableErr := castError(errorsToMap[i])
+		for k := range lm.list {
+			if comparableErr.Equal(lm.list[k]) {
+				return newIgnoreStrategy(err)
+			}
 		}
-		return newIgnoreStrategy(err)
 	}
+
 	return nil
 }
 
