@@ -8,7 +8,7 @@ import (
 )
 
 func Test_IgnoreListMapper_Map_IgnoreErrorFound(t *testing.T) {
-	errLayerOneFailed := maperr.NewError("maperr error")
+	errLayerOneFailed := errors.New("maperr error")
 	stdLibraryError := errors.New("maperr error")
 	errTextLayerTwoFailed := "bar %d"
 
@@ -62,7 +62,7 @@ func Test_IgnoreListMapper_Map_IgnoreErrorFound(t *testing.T) {
 }
 
 func Test_IgnoreListMapper_Map_IgnoreErrorNotFound(t *testing.T) {
-	errLayerOneFailed := maperr.NewError("layer 1 failed")
+	errLayerOneFailed := errors.New("layer 1 failed")
 	errTextLayerTwoFailed := "bar %d"
 
 	tests := []struct {
@@ -98,7 +98,7 @@ func Test_IgnoreListMapper_Map_IgnoreErrorNotFound(t *testing.T) {
 }
 
 func Test_IgnoreListMapper_Map_WithMultiErr(t *testing.T) {
-	errLayerOneFailed := maperr.NewError("layer 1 failed")
+	errLayerOneFailed := errors.New("layer 1 failed")
 	errTextLayerTwoFailed := "bar %d"
 
 	tests := []struct {

@@ -33,7 +33,7 @@ func (hm HashableMapper) Map(err error) MapResult {
 	if !ok {
 		return nil
 	}
-	return NewAppendStrategy(err, mapped)
+	return newAppendStrategy(err, mapped)
 }
 
 func (hm HashableMapper) tryMakeHashable(err error) error {

@@ -11,11 +11,11 @@ import (
 )
 
 func TestMultiErr_Mapped(t *testing.T) {
-	first := maperr.NewError("first")
-	second := maperr.NewError("second")
-	third := maperr.NewError("third")
-	forth := maperr.NewError("forth")
-	fifth := maperr.NewError("fifth")
+	first := errors.New("first")
+	second := errors.New("second")
+	third := errors.New("third")
+	forth := errors.New("forth")
+	fifth := errors.New("fifth")
 
 	multipleMappers := maperr.NewMultiErr(
 		maperr.NewIgnoreListMapper().
@@ -63,43 +63,6 @@ func TestMultiErr_Mapped(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			actualErr := test.mappedErrors.Mapped(test.givenError, errors.New("default"))
-			if test.expectedErr != "" {
-				assert.EqualError(t, actualErr, test.expectedErr)
-			} else {
-				assert.NoError(t, actualErr)
-			}
-		})
-	}
-}
-
-func TestMultiErr_LastMapped(t *testing.T) {
-	first := errors.New("first")
-	second := errors.New("second")
-	third := errors.New("third")
-	wrappedSecond := maperr.Append(first, second)
-	mappedErrors := maperr.NewHashableMapper().
-		Append(second, third)
-	tests := []struct {
-		name         string
-		mappedErrors maperr.HashableMapper
-		givenError   error
-		expectedErr  string
-	}{
-		{
-			name:         "last error was not found",
-			mappedErrors: mappedErrors,
-			givenError:   errors.New("not found"),
-		},
-		{
-			name:         "last error was mapped and wrapped",
-			mappedErrors: mappedErrors,
-			givenError:   wrappedSecond,
-			expectedErr:  "third",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			actualErr := maperr.NewMultiErr(test.mappedErrors).LastMapped(test.givenError)
 			if test.expectedErr != "" {
 				assert.EqualError(t, actualErr, test.expectedErr)
 			} else {
@@ -160,7 +123,7 @@ func TestMultiErr_LastMappedWithStatus(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actualErr := maperr.NewMultiErr(test.mappedErrors).LastMappedWithStatus(test.givenError)
+			actualErr := maperr.NewMultiErr(test.mappedErrors).MappedWithStatus(test.givenError)
 			if test.expected.err != "" {
 				assert.EqualError(t, actualErr, test.expected.err)
 			} else {
@@ -244,7 +207,7 @@ func Test_HasEqual(t *testing.T) {
 		name     string
 		errList  error
 		toFind   error
-		expected maperr.Error
+		expected error
 	}{
 		{
 			name:     "error to be found is nil",
@@ -268,13 +231,13 @@ func Test_HasEqual(t *testing.T) {
 			name:     "error to be found is in the list",
 			errList:  multierr.Combine(errors.New("one"), errors.New("two"), errors.New("three")),
 			toFind:   errors.New("three"),
-			expected: maperr.NewError("three"),
+			expected: errors.New("three"),
 		},
 		{
 			name:     "maperr.Error to be found is in the list",
 			errList:  multierr.Combine(errors.New("one"), errors.New("two"), errors.New("three")),
-			toFind:   maperr.NewError("three"),
-			expected: maperr.NewError("three"),
+			toFind:   errors.New("three"),
+			expected: errors.New("three"),
 		},
 		{
 			name: "formatted error to be found is in the list with a different id",
