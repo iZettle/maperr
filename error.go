@@ -1,6 +1,9 @@
 package maperr
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // Error which exposes a method that determines if the error
 // can be considered equal or not
@@ -21,9 +24,12 @@ func CastError(err error) Error {
 	if err == nil {
 		return nil
 	}
-	if mapError, ok := err.(Error); ok {
+
+	var mapError Error
+	if errors.As(err, &mapError) {
 		return mapError
 	}
+
 	return NewError(err.Error())
 }
 
@@ -60,9 +66,9 @@ func (fe formattedError) Hashable() error {
 }
 
 func (fe formattedError) Equal(err Error) bool {
-	formattedErr, ok := err.(formattedError)
-	if !ok {
-		return false
+	var ferr formattedError
+	if errors.As(err, &ferr) {
+		return fe.format == ferr.format
 	}
-	return fe.format == formattedErr.format
+	return false
 }

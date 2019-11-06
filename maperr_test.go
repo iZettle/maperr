@@ -112,12 +112,18 @@ func TestMultiErr_LastMapped(t *testing.T) {
 func TestMultiErr_LastMappedWithStatus(t *testing.T) {
 	first := errors.New("first")
 	second := errors.New("second")
+
 	wrappedSecond := maperr.
 		Append(first, second)
-	mappedErrorsWithStatus := maperr.NewHashableMapper().
+
+	mappedErrorsWithStatus := maperr.
+		NewHashableMapper().
 		Append(second, maperr.WithStatus("third", http.StatusInternalServerError))
-	mappedErrorsWithoutStatus := maperr.NewHashableMapper().
+
+	mappedErrorsWithoutStatus := maperr.
+		NewHashableMapper().
 		Append(second, errors.New("third"))
+
 	type expected struct {
 		status int
 		err    string
@@ -271,8 +277,8 @@ func Test_HasEqual(t *testing.T) {
 			expected: maperr.NewError("three"),
 		},
 		{
-			name:     "formatted error to be found is in the list with a different id",
-			errList:  multierr.Combine(
+			name: "formatted error to be found is in the list with a different id",
+			errList: multierr.Combine(
 				errors.New("one"),
 				maperr.Errorf("this is a formatted error %d", 12345),
 				errors.New("two"),
