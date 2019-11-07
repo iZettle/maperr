@@ -1,5 +1,9 @@
 package maperr
 
+import (
+	"go.uber.org/multierr"
+)
+
 // PairErrors holds a pair of errorPairs
 type PairErrors struct {
 	err   Error
@@ -33,19 +37,22 @@ func (lm ListMapper) Append(err, match error) ListMapper {
 
 // Map a formatted error to an error
 func (lm ListMapper) Map(err error) MapResult {
-	var toMap = err
-	previous := LastAppended(err)
-	if previous != nil {
-		toMap = previous
+	errorsToMap := []error{
+		err,
+	}
+	if errList := multierr.Errors(err); len(errList) > 0 {
+		errorsToMap = errList
 	}
 
-	comparableErr := castError(toMap)
-	for k := range lm.errorPairs {
-		if !comparableErr.Equal(lm.errorPairs[k].err) {
-			continue
+	for i := len(errorsToMap) - 1; i >= 0; i-- {
+		comparableErr := castError(errorsToMap[i])
+		for k := range lm.errorPairs {
+			if comparableErr.Equal(lm.errorPairs[k].err) {
+				return newAppendStrategy(err, lm.errorPairs[k].match)
+			}
 		}
-		return newAppendStrategy(err, lm.errorPairs[k].match)
 	}
+
 	return nil
 }
 

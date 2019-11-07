@@ -4,9 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/iZettle/maperr/v4"
-
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/multierr"
+
+	"github.com/iZettle/maperr/v4"
 )
 
 func TestMap_MappedFormattedErrors(t *testing.T) {
@@ -60,5 +61,33 @@ func TestMap_MappedFormattedErrors(t *testing.T) {
 				assert.EqualError(t, actualErr, test.expectedErr)
 			}
 		})
+	}
+}
+
+func TestMap_ListMapper_FindAnyErrorInChain(t *testing.T) {
+	errSecond := errors.New("second error")
+
+	errChain := multierr.Combine(
+		errors.New("first error"),
+		errSecond,
+		errors.New("third error"),
+		errors.New("forth error"),
+		errors.New("fifth error"),
+	)
+
+	mappedErr := maperr.NewMultiErr(
+		maperr.
+			NewListMapper().
+			Append(errSecond, errors.New("this should be appended on Map()")),
+	).Mapped(errChain, nil)
+
+	if mappedErr == nil {
+		t.Fatal("expected err got nil")
+	}
+
+	expected := "first error; second error; third error; forth error; fifth error; this should be appended on Map()"
+	got := mappedErr.Error()
+	if got != expected {
+		t.Fatalf("expected %s got %s", expected, got)
 	}
 }

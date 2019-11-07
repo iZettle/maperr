@@ -4,6 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	"go.uber.org/multierr"
+
 	"github.com/iZettle/maperr/v4"
 )
 
@@ -135,5 +137,27 @@ func Test_IgnoreListMapper_Map_WithMultiErr(t *testing.T) {
 				t.Fatalf("expected nil got err %s", mappedErr.Error())
 			}
 		})
+	}
+}
+
+func TestMap_IgnoreListMapper_FindAnyErrorInChain(t *testing.T) {
+	errSecond := errors.New("second error")
+
+	errChain := multierr.Combine(
+		errors.New("first error"),
+		errSecond,
+		errors.New("third error"),
+		errors.New("forth error"),
+		errors.New("fifth error"),
+	)
+
+	mappedErr := maperr.NewMultiErr(
+		maperr.
+			NewIgnoreListMapper().
+			Append(errSecond),
+	).Mapped(errChain, nil)
+
+	if mappedErr != nil {
+		t.Fatal("expected nil got err")
 	}
 }

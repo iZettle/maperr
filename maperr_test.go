@@ -12,21 +12,26 @@ import (
 
 func TestMultiErr_Mapped(t *testing.T) {
 	first := errors.New("first")
-	second := errors.New("second")
-	third := errors.New("third")
-	forth := errors.New("forth")
-	fifth := errors.New("fifth")
+
+	errListErrorOne := errors.New("errListErrorOne")
+	errListErrorTwo := errors.New("errListErrorTwo")
+	errListErrorThree := errors.New("errListErrorThree")
+
+	errHashableErrorOne := errors.New("errHashableErrorOne")
+	errHashableErrorTwo := errors.New("errHashableErrorTwo")
+
+	errIgnore := errors.New("errIgnore")
 
 	multipleMappers := maperr.NewMultiErr(
-		maperr.NewIgnoreListMapper().
-			Append(second),
-
 		maperr.NewListMapper().
-			Append(second, third).
-			Append(third, forth),
+			Append(errListErrorOne, errListErrorTwo).
+			Append(errListErrorTwo, errListErrorThree),
 
 		maperr.NewHashableMapper().
-			Append(forth, fifth),
+			Append(errHashableErrorOne, errHashableErrorTwo),
+
+		maperr.NewIgnoreListMapper().
+			Append(errIgnore),
 	)
 
 	tests := []struct {
@@ -42,22 +47,22 @@ func TestMultiErr_Mapped(t *testing.T) {
 			expectedErr:  "",
 		},
 		{
-			name:         "second is ignored",
+			name:         "when errListErrorTwo is last error, errListErrorThree is mapped and appended",
 			mappedErrors: multipleMappers,
-			givenError:   maperr.Append(first, second),
+			givenError:   maperr.Combine(first, errListErrorOne, errListErrorTwo),
+			expectedErr:  "first; errListErrorOne; errListErrorTwo; errListErrorThree",
+		},
+		{
+			name:         "when errHashableErrorOne is last error, errHashableErrorTwo is mapped and appended",
+			mappedErrors: multipleMappers,
+			givenError:   maperr.Combine(first, errHashableErrorOne),
+			expectedErr:  "first; errHashableErrorOne; errHashableErrorTwo",
+		},
+		{
+			name:         "errIgnore is ignored",
+			mappedErrors: multipleMappers,
+			givenError:   maperr.Combine(first, errIgnore),
 			expectedErr:  "",
-		},
-		{
-			name:         "when third is last error, forth is mapped and appended",
-			mappedErrors: multipleMappers,
-			givenError:   maperr.Combine(first, second, third),
-			expectedErr:  "first; second; third; forth",
-		},
-		{
-			name:         "when forth is last error, fifth is mapped and appended",
-			mappedErrors: multipleMappers,
-			givenError:   maperr.Combine(first, second, third, forth),
-			expectedErr:  "first; second; third; forth; fifth",
 		},
 	}
 	for _, test := range tests {
