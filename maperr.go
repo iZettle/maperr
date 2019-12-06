@@ -68,6 +68,7 @@ func (m MultiErr) lastMapped(err error) error {
 type ErrorWithStatusProvider interface {
 	error
 	Status() int
+	Unwrap() error
 }
 
 // MappedWithStatus return the last mapped error with the associated http status
