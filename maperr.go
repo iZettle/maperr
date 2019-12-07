@@ -2,6 +2,7 @@ package maperr
 
 import (
 	"errors"
+	"net/http"
 
 	"go.uber.org/multierr"
 )
@@ -74,6 +75,9 @@ type ErrorWithStatusProvider interface {
 // MappedWithStatus return the last mapped error with the associated http status
 func (m MultiErr) MappedWithStatus(err error) ErrorWithStatusProvider {
 	lastMapped := m.lastMapped(err)
+	if lastMapped == nil && err != nil {
+		return newErrorWithStatus(err, http.StatusInternalServerError)
+	}
 	if lastMapped == nil {
 		return nil
 	}
@@ -94,6 +98,10 @@ func (m MultiErr) LastMappedWithStatus(err error) ErrorWithStatusProvider {
 type errorWithStatus struct {
 	err    error
 	status int
+}
+
+func newErrorWithStatus(err error, status int) errorWithStatus {
+	return errorWithStatus{err: err, status: status}
 }
 
 func (ews errorWithStatus) Status() int {
