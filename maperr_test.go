@@ -106,6 +106,10 @@ func TestMultiErr_LastMappedWithStatus(t *testing.T) {
 			name:         "last error was not found",
 			mappedErrors: mappedErrorsWithStatus,
 			givenError:   errors.New("not found"),
+			expected: expected{
+				status: http.StatusInternalServerError,
+				err:    "not found",
+			},
 		},
 		{
 			name:         "mapped errorPairs without an http status",
