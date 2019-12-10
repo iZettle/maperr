@@ -106,9 +106,124 @@ func TestMultiErr_LastMappedWithStatus(t *testing.T) {
 			name:         "last error was not found",
 			mappedErrors: mappedErrorsWithStatus,
 			givenError:   errors.New("not found"),
+		},
+		{
+			name:         "mapped errorPairs without an http status",
+			mappedErrors: mappedErrorsWithoutStatus,
+			givenError:   wrappedSecond,
+			expected: expected{
+				status: 0,
+				err:    "",
+			},
+		},
+		{
+			name:         "last error was mapped and wrapped",
+			mappedErrors: mappedErrorsWithStatus,
+			givenError:   wrappedSecond,
 			expected: expected{
 				status: http.StatusInternalServerError,
-				err:    "not found",
+				err:    "third",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actualErr := maperr.
+				NewMultiErr(test.mappedErrors).
+				LastMappedWithStatus(test.givenError)
+			if test.expected.err != "" {
+				assert.EqualError(t, actualErr, test.expected.err)
+			} else {
+				assert.NoError(t, actualErr)
+			}
+
+			if actualErr != nil {
+				assert.Equal(t, actualErr.Status(), test.expected.status)
+			}
+		})
+	}
+}
+
+func TestMultiErr_MappedWithStatus(t *testing.T) {
+	first := errors.New("first")
+	second := errors.New("second")
+
+	wrappedSecond := maperr.
+		Append(first, second)
+
+	mappedErrorsWithStatus := maperr.
+		NewHashableMapper().
+		Append(second, maperr.WithStatus("third", http.StatusInternalServerError))
+
+	mappedErrorsWithoutStatus := maperr.
+		NewHashableMapper().
+		Append(second, errors.New("third"))
+
+	type expected struct {
+		status int
+		err    string
+	}
+	tests := []struct {
+		name         string
+		mappedErrors maperr.HashableMapper
+		givenError   error
+		givenDefault error
+		expected     expected
+	}{
+		{
+			name:         "there was no error and nothing was provided",
+			mappedErrors: mappedErrorsWithStatus,
+			givenError:   nil,
+			givenDefault: nil,
+			expected: expected{
+				err: "",
+			},
+		},
+		{
+			name:         "there was no error and a simple error was provided",
+			mappedErrors: mappedErrorsWithStatus,
+			givenError:   nil,
+			givenDefault: errors.New("default error without a status code"),
+			expected: expected{
+				err: "",
+			},
+		},
+		{
+			name:         "there was no error and a error with status was provided as default",
+			mappedErrors: mappedErrorsWithStatus,
+			givenError:   nil,
+			givenDefault: maperr.WithStatus("default error with a status code", http.StatusBadRequest),
+			expected: expected{
+				err: "",
+			},
+		},
+		{
+			name:         "last error was not found and nothing was provided",
+			mappedErrors: mappedErrorsWithStatus,
+			givenError:   errors.New("not found"),
+			givenDefault: nil,
+			expected: expected{
+				err: "",
+			},
+		},
+		{
+			name:         "last error was not found and a simple error was provided",
+			mappedErrors: mappedErrorsWithStatus,
+			givenError:   errors.New("not found"),
+			givenDefault: errors.New("default error without a status code"),
+			expected: expected{
+				status: http.StatusInternalServerError,
+				err:    "default error without a status code",
+			},
+		},
+		{
+			name:         "last error was not found and a error with status was provided as default",
+			mappedErrors: mappedErrorsWithStatus,
+			givenError:   errors.New("not found"),
+			givenDefault: maperr.WithStatus("default error with a status code", http.StatusBadRequest),
+			expected: expected{
+				status: http.StatusBadRequest,
+				err:    "default error with a status code",
 			},
 		},
 		{
@@ -132,7 +247,9 @@ func TestMultiErr_LastMappedWithStatus(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actualErr := maperr.NewMultiErr(test.mappedErrors).MappedWithStatus(test.givenError)
+			actualErr := maperr.
+				NewMultiErr(test.mappedErrors).
+				MappedWithStatus(test.givenError, test.givenDefault)
 			if test.expected.err != "" {
 				assert.EqualError(t, actualErr, test.expected.err)
 			} else {
