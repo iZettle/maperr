@@ -78,7 +78,7 @@ func (h Handler) GetByTerminal(rw http.ResponseWriter, r *http.Request) jsonhand
     layoutSet, err := h.Controller.GetListByTerminal(r.Context(), siteID, terminalID)
     
     // user errors
-    if errWithStatus := handlerErrors.LastMappedWithStatus(err); errWithStatus != nil {
+    if errWithStatus := handlerErrors.MappedWithStatus(err, maperr.WithStatusInternalServerError); errWithStatus != nil {
             return jsonhandler.NewLoggableResponseWithError(
                 errWithStatus.Status(),
                 errWithStatus.Error(),

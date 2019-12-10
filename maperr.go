@@ -65,6 +65,12 @@ func (m MultiErr) lastMapped(err error) error {
 	return res.Last()
 }
 
+// Default error with statuses
+var (
+	WithStatusBadRequest          = WithStatus(http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+	WithStatusInternalServerError = WithStatus(http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+)
+
 // ErrorWithStatusProvider defines an error which also has an http status defined
 type ErrorWithStatusProvider interface {
 	error
@@ -73,10 +79,25 @@ type ErrorWithStatusProvider interface {
 }
 
 // MappedWithStatus return the last mapped error with the associated http status
-func (m MultiErr) MappedWithStatus(err error) ErrorWithStatusProvider {
+// You can optionally provide a default error in case that will be returned if the error has not been mapped
+//
+// defaultErr == nil                      returns the ErrorWithStatusProvider only if error is mapped
+//                                        alias for LastMappedWithStatus(err)
+//
+// defaultErr.(ErrorWithStatusProvider)   allow you to specify a status code
+//                                        e.g.: maperr.WithStatus("USER_ERROR", http.StatusBadRequest)
+//
+// defaultErr.(error)                     will cast to a ErrorWithStatusProvider with http.StatusInternalServerError
+func (m MultiErr) MappedWithStatus(err, defaultErr error) ErrorWithStatusProvider {
 	lastMapped := m.lastMapped(err)
 	if lastMapped == nil && err != nil {
-		return newErrorWithStatus(err, http.StatusInternalServerError)
+		var defaultErrWithStatus ErrorWithStatusProvider
+		if errors.As(defaultErr, &defaultErrWithStatus) {
+			return defaultErrWithStatus
+		}
+		if defaultErr != nil {
+			return newErrorWithStatus(defaultErr, http.StatusInternalServerError)
+		}
 	}
 	if lastMapped == nil {
 		return nil
@@ -90,9 +111,9 @@ func (m MultiErr) MappedWithStatus(err error) ErrorWithStatusProvider {
 	return nil
 }
 
-// LastMappedWithStatus alias of MappedWithStatus
+// LastMappedWithStatus return the last mapped error with the associated http status
 func (m MultiErr) LastMappedWithStatus(err error) ErrorWithStatusProvider {
-	return m.MappedWithStatus(err)
+	return m.MappedWithStatus(err, nil)
 }
 
 type errorWithStatus struct {
