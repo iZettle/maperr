@@ -5,7 +5,6 @@
 
 <!-- vim-markdown-toc GFM -->
 
-* [Code Owners](#code-owners)
 * [Hashable mapper](#hashable-mapper)
 * [List mapper](#list-mapper)
 * [Ignore list mapper](#ignore-list-mapper)
@@ -16,11 +15,6 @@
 	* [Ignore list mapper](#ignore-list-mapper-1)
 
 <!-- vim-markdown-toc -->
-
-## Code Owners
-| Owner                             | Slack Channel          |
-|-----------------------------------|------------------------|
-| `mse-understand`                  | `#edinburgh-understand`|
 
 ## Hashable mapper
 `HashableMapper` only works when the mapped error is a comparable https://golang.org/ref/spec#Comparison_operators
