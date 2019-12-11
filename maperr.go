@@ -112,6 +112,7 @@ func (m MultiErr) MappedWithStatus(err, defaultErr error) ErrorWithStatusProvide
 }
 
 // LastMappedWithStatus return the last mapped error with the associated http status
+// Deprecated: consider using MappedWithStatus() instead, as encourages to specify a default error
 func (m MultiErr) LastMappedWithStatus(err error) ErrorWithStatusProvider {
 	return m.MappedWithStatus(err, nil)
 }
