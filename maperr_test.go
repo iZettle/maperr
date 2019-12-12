@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/iZettle/maperr/v4"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/multierr"
+
+	"github.com/iZettle/maperr/v4"
 )
 
 func TestMultiErr_Mapped(t *testing.T) {
@@ -248,6 +249,13 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 			name:         "passed in error is nil, expect nil back",
 			mappedErrors: maperr.NewIgnoreListMapper().Append(errors.New("test")),
 			givenError:   nil,
+			expected:     expected{},
+		},
+		{
+			name:         "ignored with default",
+			mappedErrors: maperr.NewIgnoreListMapper().Append(second),
+			givenError:   wrappedSecond,
+			givenDefault: errors.New("default error"),
 			expected:     expected{},
 		},
 	}
