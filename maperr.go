@@ -57,12 +57,12 @@ func (m MultiErr) Mapped(err, defaultErr error) error {
 }
 
 // lastMapped return the last mapped error
-func (m MultiErr) lastMapped(err error) error {
+func (m MultiErr) lastMapped(err error) MapResult {
 	res := m.mappers.Map(err)
 	if res == nil {
 		return nil
 	}
-	return res.Last()
+	return res
 }
 
 // Default error with statuses
@@ -92,8 +92,14 @@ func (m MultiErr) MappedWithStatus(err, defaultErr error) ErrorWithStatusProvide
 	if err == nil {
 		return nil
 	}
-	lastMapped := m.lastMapped(err)
-	if lastMapped == nil && err != nil {
+
+	// if the last appended error was ignored we have to map it to nil
+	lastMappedResult := m.lastMapped(err)
+	if _, ok := lastMappedResult.(ignoreStrategy); ok {
+		return nil
+	}
+
+	if lastMappedResult == nil && err != nil {
 		var defaultErrWithStatus ErrorWithStatusProvider
 		if errors.As(defaultErr, &defaultErrWithStatus) {
 			return defaultErrWithStatus
@@ -102,10 +108,11 @@ func (m MultiErr) MappedWithStatus(err, defaultErr error) ErrorWithStatusProvide
 			return newErrorWithStatus(defaultErr, http.StatusInternalServerError)
 		}
 	}
-	if lastMapped == nil {
+	if lastMappedResult == nil {
 		return nil
 	}
 
+	lastMapped := lastMappedResult.Last()
 	var statusErr ErrorWithStatusProvider
 	if errors.As(lastMapped, &statusErr) {
 		return statusErr
