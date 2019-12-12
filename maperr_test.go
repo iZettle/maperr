@@ -165,7 +165,7 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 	}
 	tests := []struct {
 		name         string
-		mappedErrors maperr.HashableMapper
+		mappedErrors maperr.Mapper
 		givenError   error
 		givenDefault error
 		expected     expected
@@ -243,6 +243,12 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 				status: http.StatusInternalServerError,
 				err:    "third",
 			},
+		},
+		{
+			name:         "passed in error is nil, expect nil back",
+			mappedErrors: maperr.NewIgnoreListMapper().Append(errors.New("test")),
+			givenError:   nil,
+			expected:     expected{},
 		},
 	}
 	for _, test := range tests {

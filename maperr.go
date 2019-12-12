@@ -89,6 +89,9 @@ type ErrorWithStatusProvider interface {
 //
 // defaultErr.(error)                     will cast to a ErrorWithStatusProvider with http.StatusInternalServerError
 func (m MultiErr) MappedWithStatus(err, defaultErr error) ErrorWithStatusProvider {
+	if err == nil {
+		return nil
+	}
 	lastMapped := m.lastMapped(err)
 	if lastMapped == nil && err != nil {
 		var defaultErrWithStatus ErrorWithStatusProvider
