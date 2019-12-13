@@ -26,8 +26,8 @@ func (lm IgnoreListMapper) Append(err error) IgnoreListMapper {
 	return lm
 }
 
-// Map an error to an ignore strategy
-func (lm IgnoreListMapper) Map(err error) MapResult {
+// mapErr an error to an ignore strategy
+func (lm IgnoreListMapper) mapErr(err error) mapResult {
 	errorsToMap := []error{
 		err,
 	}
@@ -49,29 +49,29 @@ func (lm IgnoreListMapper) Map(err error) MapResult {
 
 // ignoreStrategy holds data for an ignore strategy
 type ignoreStrategy struct {
-	previous error
+	previousErr error
 }
 
 // newIgnoreStrategy instantiates a new ignoreStrategy
 func newIgnoreStrategy(previous error) ignoreStrategy {
 	return ignoreStrategy{
-		previous: previous,
+		previousErr: previous,
 	}
 }
 
-// Previous holds the error that we wanted to ignore
-func (as ignoreStrategy) Previous() error {
-	return as.previous
+// previous holds the error that we wanted to ignore
+func (as ignoreStrategy) previous() error {
+	return as.previousErr
 }
 
-// Last is defined to implement the interface
+// last is defined to implement the interface
 // returns nil since we are always mapping to nil for this strategy
-func (as ignoreStrategy) Last() error {
+func (as ignoreStrategy) last() error {
 	return nil
 }
 
-// Apply is defined to implement the interface
+// apply is defined to implement the interface
 // returns nil since we are always mapping to nil for this strategy
-func (as ignoreStrategy) Apply() error {
+func (as ignoreStrategy) apply() error {
 	return nil
 }

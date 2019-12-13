@@ -35,8 +35,8 @@ func (lm ListMapper) Append(err, match error) ListMapper {
 	return lm
 }
 
-// Map a formatted error to an error
-func (lm ListMapper) Map(err error) MapResult {
+// mapErr a formatted error to an error
+func (lm ListMapper) mapErr(err error) mapResult {
 	errorsToMap := []error{
 		err,
 	}
@@ -58,29 +58,29 @@ func (lm ListMapper) Map(err error) MapResult {
 
 // appendStrategy holds data for an ignore strategy
 type appendStrategy struct {
-	previous error
-	last     error
+	previousErr error
+	lastErr     error
 }
 
 // newAppendStrategy instantiates a new appendStrategy
 func newAppendStrategy(previous, last error) appendStrategy {
-	return appendStrategy{previous: previous, last: last}
+	return appendStrategy{previousErr: previous, lastErr: last}
 }
 
-// Previous returns the error that we want to append to
-func (as appendStrategy) Previous() error {
-	return as.previous
+// previous returns the error that we want to append to
+func (as appendStrategy) previous() error {
+	return as.previousErr
 }
 
-// Last returns the error that we are appending
-func (as appendStrategy) Last() error {
-	return as.last
+// last returns the error that we are appending
+func (as appendStrategy) last() error {
+	return as.lastErr
 }
 
-// Apply the append strategy by appending previous to last
-func (as appendStrategy) Apply() error {
-	if as.last == nil {
+// apply the append strategy by appending previousErr to lastErr
+func (as appendStrategy) apply() error {
+	if as.lastErr == nil {
 		return nil
 	}
-	return Append(as.previous, as.last)
+	return Append(as.previousErr, as.lastErr)
 }

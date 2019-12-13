@@ -48,13 +48,13 @@ func TestMultiErr_Mapped(t *testing.T) {
 			expectedErr:  "",
 		},
 		{
-			name:         "when errListErrorTwo is last error, errListErrorThree is mapped and appended",
+			name:         "when errListErrorTwo is lastErr error, errListErrorThree is mapped and appended",
 			mappedErrors: multipleMappers,
 			givenError:   maperr.Combine(first, errListErrorOne, errListErrorTwo),
 			expectedErr:  "first; errListErrorOne; errListErrorTwo; errListErrorThree",
 		},
 		{
-			name:         "when errHashableErrorOne is last error, errHashableErrorTwo is mapped and appended",
+			name:         "when errHashableErrorOne is lastErr error, errHashableErrorTwo is mapped and appended",
 			mappedErrors: multipleMappers,
 			givenError:   maperr.Combine(first, errHashableErrorOne),
 			expectedErr:  "first; errHashableErrorOne; errHashableErrorTwo",
@@ -104,7 +104,7 @@ func TestMultiErr_LastMappedWithStatus(t *testing.T) {
 		expected     expected
 	}{
 		{
-			name:         "last error was not found",
+			name:         "lastErr error was not found",
 			mappedErrors: mappedErrorsWithStatus,
 			givenError:   errors.New("not found"),
 		},
@@ -118,7 +118,7 @@ func TestMultiErr_LastMappedWithStatus(t *testing.T) {
 			},
 		},
 		{
-			name:         "last error was mapped and wrapped",
+			name:         "lastErr error was mapped and wrapped",
 			mappedErrors: mappedErrorsWithStatus,
 			givenError:   wrappedSecond,
 			expected: expected{
@@ -199,7 +199,7 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 			},
 		},
 		{
-			name:         "last error was not found and nothing was provided",
+			name:         "lastErr error was not found and nothing was provided",
 			mappedErrors: mappedErrorsWithStatus,
 			givenError:   errors.New("not found"),
 			givenDefault: nil,
@@ -208,7 +208,7 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 			},
 		},
 		{
-			name:         "last error was not found and a simple error was provided",
+			name:         "lastErr error was not found and a simple error was provided",
 			mappedErrors: mappedErrorsWithStatus,
 			givenError:   errors.New("not found"),
 			givenDefault: errors.New("default error without a status code"),
@@ -218,7 +218,7 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 			},
 		},
 		{
-			name:         "last error was not found and a error with status was provided as default",
+			name:         "lastErr error was not found and a error with status was provided as default",
 			mappedErrors: mappedErrorsWithStatus,
 			givenError:   errors.New("not found"),
 			givenDefault: maperr.WithStatus("default error with a status code", http.StatusBadRequest),
@@ -237,7 +237,7 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 			},
 		},
 		{
-			name:         "last error was mapped and wrapped",
+			name:         "lastErr error was mapped and wrapped",
 			mappedErrors: mappedErrorsWithStatus,
 			givenError:   wrappedSecond,
 			expected: expected{

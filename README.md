@@ -3,105 +3,65 @@
 [![][buildstatus img]][buildstatus]
 [![][coverage img]][coverage]
 
-<!-- vim-markdown-toc GFM -->
+`maperr` is a library that allow you to define a list of errors which you want to map to some other errors.
 
-* [Hashable mapper](#hashable-mapper)
-* [List mapper](#list-mapper)
-* [Ignore list mapper](#ignore-list-mapper)
-* [Usages:](#usages)
-	* [Hashable mapper](#hashable-mapper-1)
-		* [Errors with status with hashable mapper](#errors-with-status-with-hashable-mapper)
-	* [List mapper](#list-mapper-1)
-	* [Ignore list mapper](#ignore-list-mapper-1)
+## Motivation
 
-<!-- vim-markdown-toc -->
+When writing a service which adopts a multi-layer architecture (e.g.: presentation, domain and storage) errors which are
+returned in lower layers of the application are often wrapped with other errors. 
+This not only add context but also allow you to assertion in your higher layer (e.g.: presentation) 
+without having to directly perform checks for errors which are held withing the lower layers of your application (e.g.: storage).
 
-## Hashable mapper
-`HashableMapper` only works when the mapped error is a comparable https://golang.org/ref/spec#Comparison_operators
+This works fine if all your error will be mapped to a `5xx` error. However, sometimes some of this error are more user
+errors which have been detected lower down the application layers which could fall in the `4xx` range.
 
-This is because is defined as `type HashableMapper map[error]error`
+This requires a mapping of errors, between layers, and if you have many errors to map, you would end up with one `if` statement
+for each error. This library allow you to handle all of them in a single `if` statement.
 
-Use this when you are mapping simple errors, is the fastest mapper when matching the errors.
-
-## List mapper
-`ListMapper` can be used in combination of the standard `HashableMapper` to allow to map any error that implements
-`maperr.Error`
-
-`maperr.Errorf` returns an error which implements `maperr.Error` and when used in combination with `ListMapper` allow 
-you to match error's formats
-
-## Ignore list mapper
-
-`IgnoreListMapper` allow to define a list of errors that should be ignored therefore if they are found in the last error
-`Mapped()` will return `nil`
-
-## Usages:
-
-### Hashable mapper
+## Mapping errors to status code
 
 ```go
-    // storageErrors associates a possible error with a storage layer error
-    var storageErrors = maperr.NewMultiErr(maperr.NewHashableMapper()
-        Append(sql.ErrNoRows, storage.ErrorSKURecipeNotFound)
+var errMapper = maperr.NewMultiErr(
+	maperr.NewHashableMapper().
+		Append(domain.ErrOne, maperr.WithStatus("err one happened", http.StatusInternalServerError)).
+		Append(domain.ErrTwo, maperr.WithStatus("err two happened", http.StatusBadRequest)).
+		Append(domain.ErrThree, maperr.WithStatus("err three happened", http.StatusConflict)).
+		Append(domain.ErrDeadlineExceeded, maperr.WithStatus("deadline exceeded", http.StatusBadRequest)).
+		Append(domain.ErrCanceled, maperr.WithStatus("context was cancelled", http.StatusBadRequest)),
+    
+	maperr.NewIgnoreListMapper().
+        Append(domain.ErrThatNeedsIgnored),
+)
 
-    func (s *Storage) Get() (*Foo, error) {
+func (h Handler) Update(rw http.ResponseWriter, r *http.Request) {
+    ...
+    entity, err := h.Controller.Update(r.Context(), id)
+    if mappedErr := errMapper.MappedWithStatus(err, maperr.WithStatusInternalServerError); mappedErr != nil {
+    	 // mappedErr.Error() -> error to send in response
+         // mappedErr.Status() -> status code for response
+         // mappedErr.Unwrap() -> cause to log
+    }
+```
+
+### Mapping errors to other errors
+
+```go
+    var errMapper = maperr.NewMultiErr(
+        maperr.NewHashableMapper()
+            Append(storage.ErrOne, ErrOne).
+            Append(storage.ErrTwo, ErrTwo).
+            Append(storage.ErrThree, ErrThree).
+            Append(context.DeadlineExceeded, ErrDeadlineExceeded).
+            Append(context.Canceled, ErrCanceled).
+            Append(sql.ErrNoRows, ErrorUserNotFound))
+
+    func (c Controller) Update(ctx context.Context, user User) error {
         ...
-        err := s.db.Get(model, query, args...)
-
-        // if the error is sql.ErrNoRows, wraps storage.ErrorSKURecipeNotFound
-        // otherwise wraps storage.ErrorDatabaseQuerySelectFailed
-        appendedErr := storageErrors.Mapped(err, storage.ErrorDatabaseQuerySelectFailed)
-        if appendedErr != nil {
-            return nil, appendedErr
+        err := s.storage.Update(user)
+        if appendedErr := errMapper.Mapped(err, ErrSomethingBadHappened); appendedErr != nil {
+            return appendedErr
         }
     }
-```
-
-
-#### Errors with status with hashable mapper
-
-The hashable mapper supports errors that are decorated with a status code by using `maperr.WithStatus`
-
-```go
-var handlerErrors = maperr.NewMultiErr(
-	maperr.NewHashableMapper().
-		Append(layoutsetview.ErrLayoutSetViewControllerCancelledContext, maperr.WithStatus(errTextCancelledRequest, http.StatusBadRequest)))
-
-func (h Handler) GetByTerminal(rw http.ResponseWriter, r *http.Request) jsonhandler.JSONResponse {
-    ...
-    layoutSet, err := h.Controller.GetListByTerminal(r.Context(), siteID, terminalID)
-    
-    if mappedErr := errMapper.MappedWithStatus(err, maperr.WithStatusInternalServerError); mappedErr != nil {
-         return jsonhandler.NewLoggableResponseFromErrorWithStatus(mappedErr)
-    }
-```
-
-### List mapper
-
-```go
-    var errTextElementNotFound := "element with %d was not found"
-
-    var repositoryErrors = maperr.NewMultiErr(
-        maperr.NewListMapper().
-            Appendf(errTextElementNotFound, ErrBar). // wraps the error in a error type which holds the format
-            Append(ErrFoo, ErrBar), // add the error as it is
-    )
-    
-    // maperr.Errorf wraps the error in a type which holds the format
-    // this means that the mapper can match when the format is the same
-    err = maperr.Errorf(errTextElementNotFound, 12345)
-    
-    if appendedErr := repositoryErrors.Mapped(err, ErrFoo); appendedErr != nil {
-        return nil, appendedErr
-    }
-```
-
-### Ignore list mapper
-
-```go
-    var Errors = maperr.NewMultiErr(
-    	maperr.NewIgnoreListMapper().
-            .Append(errors.New("this need ignored, use sparingly"))
 ```
 
 [buildstatus img]:https://travis-ci.com/iZettle/maperr.svg?token=Gc7Chex1j1M4SzP7wjCm&branch=master

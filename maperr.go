@@ -7,23 +7,23 @@ import (
 	"go.uber.org/multierr"
 )
 
-// MapResult is an interface that defines the result of a Map operation
-type MapResult interface {
-	Previous() error
-	Last() error
-	Apply() error
+// mapResult is an interface that defines the result of a mapErr operation
+type mapResult interface {
+	previous() error
+	last() error
+	apply() error
 }
 
-// Mapper takes an error and return a MapResult
+// Mapper takes an error and return a mapResult
 type Mapper interface {
-	Map(error) MapResult
+	mapErr(error) mapResult
 }
 
 type mapperList []Mapper
 
-func (ml mapperList) Map(err error) MapResult {
+func (ml mapperList) mapErr(err error) mapResult {
 	for k := range ml {
-		if mapped := ml[k].Map(err); mapped != nil {
+		if mapped := ml[k].mapErr(err); mapped != nil {
 			return mapped
 		}
 	}
@@ -47,8 +47,8 @@ func (m MultiErr) Mapped(err, defaultErr error) error {
 	if err == nil {
 		return nil
 	}
-	if res := m.mappers.Map(err); res != nil {
-		return res.Apply()
+	if res := m.mappers.mapErr(err); res != nil {
+		return res.apply()
 	}
 	if defaultErr != nil {
 		return Append(err, defaultErr)
@@ -56,9 +56,9 @@ func (m MultiErr) Mapped(err, defaultErr error) error {
 	return err
 }
 
-// lastMapped return the last mapped error
-func (m MultiErr) lastMapped(err error) MapResult {
-	res := m.mappers.Map(err)
+// lastMapped return the lastErr mapped error
+func (m MultiErr) lastMapped(err error) mapResult {
+	res := m.mappers.mapErr(err)
 	if res == nil {
 		return nil
 	}
@@ -78,7 +78,7 @@ type ErrorWithStatusProvider interface {
 	Unwrap() error
 }
 
-// MappedWithStatus return the last mapped error with the associated http status
+// MappedWithStatus return the lastErr mapped error with the associated http status
 // You can optionally provide a default error in case that will be returned if the error has not been mapped
 //
 // defaultErr == nil                      returns the ErrorWithStatusProvider only if error is mapped
@@ -93,7 +93,7 @@ func (m MultiErr) MappedWithStatus(err, defaultErr error) ErrorWithStatusProvide
 		return nil
 	}
 
-	// if the last appended error was ignored we have to map it to nil
+	// if the lastErr appended error was ignored we have to map it to nil
 	lastMappedResult := m.lastMapped(err)
 	if _, ok := lastMappedResult.(ignoreStrategy); ok {
 		return nil
@@ -112,7 +112,7 @@ func (m MultiErr) MappedWithStatus(err, defaultErr error) ErrorWithStatusProvide
 		return nil
 	}
 
-	lastMapped := lastMappedResult.Last()
+	lastMapped := lastMappedResult.last()
 	var statusErr ErrorWithStatusProvider
 	if errors.As(lastMapped, &statusErr) {
 		return statusErr
@@ -121,7 +121,7 @@ func (m MultiErr) MappedWithStatus(err, defaultErr error) ErrorWithStatusProvide
 	return nil
 }
 
-// LastMappedWithStatus return the last mapped error with the associated http status
+// LastMappedWithStatus return the lastErr mapped error with the associated http status
 // Deprecated: consider using MappedWithStatus() instead, as encourages to specify a default error
 func (m MultiErr) LastMappedWithStatus(err error) ErrorWithStatusProvider {
 	return m.MappedWithStatus(err, nil)
@@ -161,7 +161,7 @@ func WithStatus(err string, status int) error {
 	}
 }
 
-// LastAppended return the last error appended as multierr
+// LastAppended return the lastErr error appended as multierr
 func LastAppended(err error) error {
 	if errList := multierr.Errors(err); len(errList) > 0 {
 		return errList[len(errList)-1]
