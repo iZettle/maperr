@@ -102,10 +102,10 @@ func (m MultiErr) MappedWithStatus(err, defaultErr error) ErrorWithStatusProvide
 	if lastMappedResult == nil && err != nil {
 		var defaultErrWithStatus ErrorWithStatusProvider
 		if errors.As(defaultErr, &defaultErrWithStatus) {
-			return defaultErrWithStatus
+			return newErrorWithStatus(defaultErrWithStatus, err, defaultErrWithStatus.Status())
 		}
 		if defaultErr != nil {
-			return newErrorWithStatus(defaultErr, http.StatusInternalServerError)
+			return newErrorWithStatus(defaultErr, err, http.StatusInternalServerError)
 		}
 	}
 	if lastMappedResult == nil {
@@ -130,10 +130,15 @@ func (m MultiErr) LastMappedWithStatus(err error) ErrorWithStatusProvider {
 type errorWithStatus struct {
 	err    error
 	status int
+	cause  error
 }
 
-func newErrorWithStatus(err error, status int) errorWithStatus {
-	return errorWithStatus{err: err, status: status}
+func newErrorWithStatus(err, cause error, status int) errorWithStatus {
+	return errorWithStatus{
+		err:    err,
+		status: status,
+		cause:  cause,
+	}
 }
 
 func (ews errorWithStatus) Status() int {
@@ -141,7 +146,7 @@ func (ews errorWithStatus) Status() int {
 }
 
 func (ews errorWithStatus) Unwrap() error {
-	return ews.err
+	return ews.cause
 }
 
 func (ews errorWithStatus) Error() string {
