@@ -23,8 +23,8 @@ func (hm HashableMapper) Append(err, match error) HashableMapper {
 	return hm
 }
 
-// Map an error to another error
-func (hm HashableMapper) Map(err error) MapResult {
+// mapErr an error to another error
+func (hm HashableMapper) mapErr(err error) mapResult {
 	errorsToMap := []error{
 		err,
 	}
