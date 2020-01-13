@@ -22,7 +22,7 @@ for each error. This library allow you to handle all of them in a single `if` st
 
 ```go
 var errMapper = maperr.NewMultiErr(
-	maperr.NewHashableMapper().
+	maperr.NewListMapper().
 		Append(domain.ErrOne, maperr.WithStatus("err one happened", http.StatusInternalServerError)).
 		Append(domain.ErrTwo, maperr.WithStatus("err two happened", http.StatusBadRequest)).
 		Append(domain.ErrThree, maperr.WithStatus("err three happened", http.StatusConflict)).

@@ -153,6 +153,21 @@ func (ews errorWithStatus) Error() string {
 	return ews.err.Error()
 }
 
+func (ews errorWithStatus) Hashable() error {
+	return ews
+}
+
+func (ews errorWithStatus) Equal(err error) bool {
+	if err == nil {
+		return false
+	}
+	var errWithStatus errorWithStatus
+	if errors.As(err, &errWithStatus) {
+		return errors.Is(ews.err, errWithStatus.err)
+	}
+	return false
+}
+
 // WithStatus return an error with an associated status
 func WithStatus(err string, status int) error {
 	return errorWithStatus{
