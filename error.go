@@ -11,6 +11,7 @@ type Error interface {
 	error
 	Equal(error) bool
 	Hashable() error
+	Is(err error) bool
 }
 
 // Errorf returns an error which persists
@@ -68,6 +69,11 @@ func (fe formattedError) Unwrap() error {
 // Error return the hashable error
 func (fe formattedError) Hashable() error {
 	return fe.err
+}
+
+// Is is an alias for Equal added to support go 1.13 errors
+func (fe formattedError) Is(err error) bool {
+	return fe.Equal(err)
 }
 
 func (fe formattedError) Equal(err error) bool {

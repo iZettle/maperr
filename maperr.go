@@ -127,55 +127,6 @@ func (m MultiErr) LastMappedWithStatus(err error) ErrorWithStatusProvider {
 	return m.MappedWithStatus(err, nil)
 }
 
-type errorWithStatus struct {
-	err    error
-	status int
-	cause  error
-}
-
-func newErrorWithStatus(err, cause error, status int) errorWithStatus {
-	return errorWithStatus{
-		err:    err,
-		status: status,
-		cause:  cause,
-	}
-}
-
-func (ews errorWithStatus) Status() int {
-	return ews.status
-}
-
-func (ews errorWithStatus) Unwrap() error {
-	return ews.cause
-}
-
-func (ews errorWithStatus) Error() string {
-	return ews.err.Error()
-}
-
-func (ews errorWithStatus) Hashable() error {
-	return ews
-}
-
-func (ews errorWithStatus) Equal(err error) bool {
-	if err == nil {
-		return false
-	}
-	var errWithStatus errorWithStatus
-	if errors.As(err, &errWithStatus) {
-		return errors.Is(ews.err, errWithStatus.err)
-	}
-	return false
-}
-
-// WithStatus return an error with an associated status
-func WithStatus(err string, status int) error {
-	return errorWithStatus{
-		err:    errors.New(err),
-		status: status,
-	}
-}
-
 // LastAppended return the lastErr error appended as multierr
 func LastAppended(err error) error {
 	if errList := multierr.Errors(err); len(errList) > 0 {
