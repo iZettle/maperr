@@ -1,0 +1,76 @@
+---
+version: 2.1
+
+orbs:
+  aws-ecr: circleci/aws-ecr@6.5.0
+
+executors:
+  golang:
+    docker:
+      - image: circleci/golang:1.13
+  golint:
+    docker:
+      - image: golangci/golangci-lint:v1.21
+    environment:
+      TERM: xterm-256color
+
+commands:
+  setup:
+    description: "Setup environment"
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v2-go-mod-{{ checksum "go.sum" }}
+      - run:
+          name: Install Dependencies
+          command: |
+            git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
+            go mod vendor
+      - save_cache:
+          key: v2-go-mod-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+      - run:
+          name: Install extra tools
+          command: |
+            go get github.com/mattn/goveralls
+            GO111MODULE=off go get github.com/iZettle/go-bindata/...
+      - run:
+          name: Make Test Result Directory
+          command: mkdir -p /tmp/test-results
+
+jobs:
+  lint:
+    executor: golint
+    steps:
+      - setup
+      - run:
+          name: Run Linter
+          command: make lint
+
+  test:
+    executor: golang
+    environment:
+      TEST_RESULTS_DIR: /tmp/test-results
+    steps:
+      - setup
+      - run:
+          name: Run Tests
+          command: make ci-test
+      - persist_to_workspace:
+          root: .
+          paths:
+            - "*"
+      - store_test_results:
+          path: /tmp/test-results
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - lint
+      - test:
+          filters:
+            tags:
+              only: /^.*/

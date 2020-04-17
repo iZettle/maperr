@@ -1,0 +1,3 @@
+* @iZettle/mse-understand
+go.mod @iZettle/mse-understand @github-actions[bot]
+go.sum @iZettle/mse-understand @github-actions[bot]
