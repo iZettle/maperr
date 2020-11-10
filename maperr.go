@@ -93,16 +93,17 @@ func (m MultiErr) MappedWithStatus(err, defaultErr error) ErrorWithStatusProvide
 		return nil
 	}
 
-	// if the lastErr appended error was ignored we have to map it to nil
 	lastMappedResult := m.lastMapped(err)
+
+	// when the mapped error comes from the "ignore list" we can exit early
 	if _, ok := lastMappedResult.(ignoreStrategy); ok {
 		return nil
 	}
 
+	// when have an error that could not be mapped, we use the defaultErr parameter instead
 	if lastMappedResult == nil && err != nil {
-		var defaultErrWithStatus ErrorWithStatusProvider
-		if errors.As(defaultErr, &defaultErrWithStatus) {
-			return newErrorWithStatus(defaultErrWithStatus, err, defaultErrWithStatus.Status())
+		if defaultStatusErr := appendCauseToErrWithStatus(defaultErr, err); defaultStatusErr != nil {
+			return defaultStatusErr
 		}
 		if defaultErr != nil {
 			return newErrorWithStatus(defaultErr, err, http.StatusInternalServerError)
@@ -113,12 +114,21 @@ func (m MultiErr) MappedWithStatus(err, defaultErr error) ErrorWithStatusProvide
 	}
 
 	lastMapped := lastMappedResult.last()
-	var statusErr ErrorWithStatusProvider
-	if errors.As(lastMapped, &statusErr) {
+	if statusErr := appendCauseToErrWithStatus(lastMapped, err); statusErr != nil {
 		return statusErr
 	}
 
 	return nil
+}
+
+func appendCauseToErrWithStatus(err, cause error) ErrorWithStatusProvider {
+	var errWithStatus errorWithStatus
+	if !errors.As(err, &errWithStatus) {
+		return nil
+	}
+	errWithStatus.cause = cause
+
+	return errWithStatus
 }
 
 // LastMappedWithStatus return the lastErr mapped error with the associated http status
