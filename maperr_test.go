@@ -96,6 +96,7 @@ func TestMultiErr_LastMappedWithStatus(t *testing.T) {
 	type expected struct {
 		status int
 		err    string
+		cause  string
 	}
 	tests := []struct {
 		name         string
@@ -124,6 +125,7 @@ func TestMultiErr_LastMappedWithStatus(t *testing.T) {
 			expected: expected{
 				status: http.StatusInternalServerError,
 				err:    "third",
+				cause:  "first; second",
 			},
 		},
 	}
@@ -136,6 +138,10 @@ func TestMultiErr_LastMappedWithStatus(t *testing.T) {
 				assert.EqualError(t, actualErr, test.expected.err)
 			} else {
 				assert.NoError(t, actualErr)
+			}
+
+			if test.expected.cause != "" {
+				assert.EqualError(t, actualErr.Unwrap(), test.expected.cause)
 			}
 
 			if actualErr != nil {
@@ -163,6 +169,7 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 	type expected struct {
 		status int
 		err    string
+		cause  string
 	}
 	tests := []struct {
 		name         string
@@ -215,6 +222,7 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 			expected: expected{
 				status: http.StatusInternalServerError,
 				err:    "default error without a status code",
+				cause:  "not found",
 			},
 		},
 		{
@@ -225,6 +233,7 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 			expected: expected{
 				status: http.StatusBadRequest,
 				err:    "default error with a status code",
+				cause:  "not found",
 			},
 		},
 		{
@@ -243,6 +252,7 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 			expected: expected{
 				status: http.StatusInternalServerError,
 				err:    "third",
+				cause:  "first; second",
 			},
 		},
 		{
@@ -268,6 +278,10 @@ func TestMultiErr_MappedWithStatus(t *testing.T) {
 				assert.EqualError(t, actualErr, test.expected.err)
 			} else {
 				assert.NoError(t, actualErr)
+			}
+
+			if test.expected.cause != "" {
+				assert.EqualError(t, actualErr.Unwrap(), test.expected.cause)
 			}
 
 			if actualErr != nil {
