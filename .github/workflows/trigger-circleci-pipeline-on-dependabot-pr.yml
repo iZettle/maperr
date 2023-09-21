@@ -1,0 +1,8 @@
+name: Trigger CircleCI pipeline for Dependabot PRs
+
+on: pull_request_target
+
+jobs:
+  trigger-cci-pipeline:
+    uses: iZettle/.github/.github/workflows/trigger-circleci-pipeline-on-dependabot-pr.yml@main
+    secrets: inherit
